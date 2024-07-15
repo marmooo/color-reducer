@@ -373,27 +373,6 @@ class FilterPanel extends LoadPanel {
   }
 }
 
-const filterPanel = new FilterPanel(document.getElementById("filterPanel"));
-const loadPanel = new LoadPanel(document.getElementById("loadPanel"));
-loadConfig();
-initLangSelect();
-initTooltip();
-document.getElementById("toggleDarkMode").onclick = toggleDarkMode;
-globalThis.ondragover = (event) => {
-  event.preventDefault();
-};
-globalThis.ondrop = (event) => {
-  event.preventDefault();
-  const file = event.dataTransfer.files[0];
-  loadPanel.loadFile(file);
-};
-globalThis.addEventListener("paste", (event) => {
-  const item = event.clipboardData.items[0];
-  const file = item.getAsFile();
-  if (!file) return;
-  loadPanel.loadFile(file);
-});
-
 class MedianCut {
   constructor(imageData) {
     this.raw = imageData.data;
@@ -538,6 +517,27 @@ class MedianCut {
     }
   }
 }
+
+const filterPanel = new FilterPanel(document.getElementById("filterPanel"));
+const loadPanel = new LoadPanel(document.getElementById("loadPanel"));
+loadConfig();
+initLangSelect();
+initTooltip();
+document.getElementById("toggleDarkMode").onclick = toggleDarkMode;
+globalThis.ondragover = (event) => {
+  event.preventDefault();
+};
+globalThis.ondrop = (event) => {
+  event.preventDefault();
+  const file = event.dataTransfer.files[0];
+  loadPanel.loadFile(file);
+};
+globalThis.addEventListener("paste", (event) => {
+  const item = event.clipboardData.items[0];
+  const file = item.getAsFile();
+  if (!file) return;
+  loadPanel.loadFile(file);
+});
 
 await loadScript(await getOpenCVPath());
 cv = await cv();
