@@ -300,16 +300,19 @@ class FilterPanel extends LoadPanel {
     } else {
       inputs.color.value = color;
     }
-    if (color === 1) {
+    if (color === 8) {
       this.canvasContext.drawImage(this.offscreenCanvas, 0, 0);
     } else {
       const src = cv.imread(this.offscreenCanvas);
 
-      const colorValue = 2 ** color - 1;
+      const step = 256 / 2 ** color;
       const colorArray = new Array(256);
       for (let i = 0; i < colorArray.length; i++) {
-        colorArray[i] = Math.round(i / colorValue) * colorValue;
+        const index = Math.floor(i / step);
+        const median = Math.floor((index + 0.5) * step);
+        colorArray[i] = median;
       }
+      console.log(step, colorArray);
       const lut = cv.matFromArray(1, 256, cv.CV_8U, colorArray);
       cv.LUT(src, lut, src);
       cv.imshow(this.canvas, src);
