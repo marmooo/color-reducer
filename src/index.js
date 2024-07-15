@@ -403,25 +403,21 @@ class MedianCut {
   }
 
   getColorInfo() {
-    const colorCount = new Uint32Array(256 * 256 * 256);
-    const index = (r, g, b) => (r * 256 + g) * 256 + b;
+    const colorCount = new Map();
     for (let i = 0; i < this.raw.length; i += 4) {
       const r = this.raw[i];
       const g = this.raw[i + 1];
       const b = this.raw[i + 2];
-      colorCount[index(r, g, b)]++;
+      const key = (r * 256 + g) * 256 + b;
+      colorCount.set(key, (colorCount.get(key) || 0) + 1);
     }
     const colors = [];
-    for (let r = 0; r < 256; r++) {
-      for (let g = 0; g < 256; g++) {
-        for (let b = 0; b < 256; b++) {
-          const uses = colorCount[index(r, g, b)];
-          if (uses > 0) {
-            colors.push({ r, g, b, uses });
-          }
-        }
-      }
-    }
+    colorCount.forEach((uses, key) => {
+      const r = key >> 16;
+      const g = (key >> 8) & 0xff;
+      const b = key & 0xff;
+      colors.push({ r, g, b, uses });
+    });
     return colors;
   }
 
@@ -519,7 +515,6 @@ class MedianCut {
       };
     });
     if (update) {
-      const pixels = new Map();
       cubes.forEach((cube, i) => {
         cube.colors.forEach(({ r, g, b }) => {
           const key = (r * 256 + g) * 256 + b;
