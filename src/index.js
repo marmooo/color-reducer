@@ -382,11 +382,12 @@ class MedianCut {
   }
 
   getColorInfo() {
+    const { raw } = this;
     const colorCount = new Map();
-    for (let i = 0; i < this.raw.length; i += 4) {
-      const r = this.raw[i];
-      const g = this.raw[i + 1];
-      const b = this.raw[i + 2];
+    for (let i = 0; i < raw.length; i += 4) {
+      const r = raw[i];
+      const g = raw[i + 1];
+      const b = raw[i + 2];
       const key = (r * 256 + g) * 256 + b;
       colorCount.set(key, (colorCount.get(key) || 0) + 1);
     }
