@@ -515,6 +515,7 @@ class MedianCut {
       };
     });
     if (update) {
+      const pixels = new Map();
       cubes.forEach((cube, i) => {
         cube.colors.forEach(({ r, g, b }) => {
           const key = (r * 256 + g) * 256 + b;
