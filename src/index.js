@@ -150,7 +150,7 @@ class LoadPanel extends Panel {
   handleImageOnloadEvent = (event) => {
     const img = event.currentTarget;
     filterPanel.setCanvas(img);
-    const filter = filterPanel.filters.reduceColor;
+    const filter = filterPanel.filters.uniformQuantization;
     filter.apply(...filter.defaultOptions);
   };
 
@@ -217,6 +217,8 @@ class FilterPanel extends LoadPanel {
 
     panel.querySelector(".moveTop").onclick = () => this.moveLoadPanel();
     panel.querySelector(".download").onclick = () => this.download();
+    panel.querySelector(".filterSelect").onchange = (event) =>
+      this.filterSelect(event);
     this.addEvents(panel);
   }
 
@@ -243,9 +245,22 @@ class FilterPanel extends LoadPanel {
     }, "image/png");
   }
 
+  filterSelect(event) {
+    const options = event.target.options;
+    const selectedIndex = options.selectedIndex;
+    const prevClass = options[this.selectedIndex].value;
+    const currClass = options[selectedIndex].value;
+    this.panel.querySelector(`.${prevClass}`).classList.add("d-none");
+    this.panel.querySelector(`.${currClass}`).classList.remove("d-none");
+    this.selectedIndex = selectedIndex;
+    const filter = this.filters[currClass];
+    filter.apply(...filter.defaultOptions);
+  }
+
   addEvents(panel) {
     this.filtering = false;
-    this.addReduceColorEvents(panel);
+    this.addUniformQuantizationEvents(panel);
+    this.addMedianCutEvents(panel);
   }
 
   addInputEvents(filter) {
@@ -262,23 +277,23 @@ class FilterPanel extends LoadPanel {
     }
   }
 
-  addReduceColorEvents(panel) {
-    const root = panel.querySelector(".reduceColor");
-    this.filters.reduceColor = {
+  addUniformQuantizationEvents(panel) {
+    const root = panel.querySelector(".uniformQuantization");
+    this.filters.uniformQuantization = {
       root,
       apply: (range) => {
-        this.reduceColor(range);
+        this.uniformQuantization(range);
       },
       defaultOptions: [6],
       inputs: {
         color: root.querySelector(".color"),
       },
     };
-    this.addInputEvents(this.filters.reduceColor);
+    this.addInputEvents(this.filters.uniformQuantization);
   }
 
-  reduceColor(color) {
-    const filter = this.filters.reduceColor;
+  uniformQuantization(color) {
+    const filter = this.filters.uniformQuantization;
     const inputs = filter.inputs;
     if (color === undefined) {
       color = Number(inputs.color.value);
@@ -300,6 +315,44 @@ class FilterPanel extends LoadPanel {
       cv.imshow(this.canvas, src);
       src.delete();
       lut.delete();
+    }
+  }
+
+  addMedianCutEvents(panel) {
+    const root = panel.querySelector(".medianCut");
+    this.filters.medianCut = {
+      root,
+      apply: (range) => {
+        this.medianCut(range);
+      },
+      defaultOptions: [6],
+      inputs: {
+        color: root.querySelector(".color"),
+      },
+    };
+    this.addInputEvents(this.filters.medianCut);
+  }
+
+  medianCut(color) {
+    const filter = this.filters.medianCut;
+    const inputs = filter.inputs;
+    if (color === undefined) {
+      color = Number(inputs.color.value);
+    } else {
+      inputs.color.value = color;
+    }
+    if (color === 9) {
+      this.canvasContext.drawImage(this.offscreenCanvas, 0, 0);
+    } else {
+      const imageData = this.offscreenCanvasContext.getImageData(
+        0,
+        0,
+        this.canvas.width,
+        this.canvas.height,
+      );
+      const medianCut = new MedianCut(imageData);
+      medianCut.apply(color ** 2, true);
+      this.canvasContext.putImageData(imageData, 0, 0);
     }
   }
 
@@ -340,6 +393,155 @@ globalThis.addEventListener("paste", (event) => {
   if (!file) return;
   loadPanel.loadFile(file);
 });
+
+class MedianCut {
+  constructor(imageData) {
+    this.raw = imageData.data;
+    this.width = imageData.width;
+    this.height = imageData.height;
+    this.colors = this.getColorInfo();
+  }
+
+  getColorInfo() {
+    const colorCount = new Uint32Array(256 * 256 * 256);
+    const index = (r, g, b) => (r * 256 + g) * 256 + b;
+    for (let i = 0; i < this.raw.length; i += 4) {
+      const r = this.raw[i];
+      const g = this.raw[i + 1];
+      const b = this.raw[i + 2];
+      colorCount[index(r, g, b)]++;
+    }
+    const colors = [];
+    for (let r = 0; r < 256; r++) {
+      for (let g = 0; g < 256; g++) {
+        for (let b = 0; b < 256; b++) {
+          const uses = colorCount[index(r, g, b)];
+          if (uses > 0) {
+            colors.push({ r, g, b, uses });
+          }
+        }
+      }
+    }
+    return colors;
+  }
+
+  calculateCubeProperties(colorArray) {
+    const colorStats = this.getColorStats(colorArray);
+    const dominantColorType = this.getDominantColorType(colorStats);
+    return {
+      colors: colorArray,
+      total: colorStats.totalUsage,
+      type: dominantColorType,
+    };
+  }
+
+  getColorStats(colorArray) {
+    let totalUsage = 0;
+    let maxR = 0, maxG = 0, maxB = 0;
+    let minR = 255, minG = 255, minB = 255;
+    for (const color of colorArray) {
+      const { r, g, b, uses } = color;
+      maxR = Math.max(maxR, r);
+      maxG = Math.max(maxG, g);
+      maxB = Math.max(maxB, b);
+      minR = Math.min(minR, r);
+      minG = Math.min(minG, g);
+      minB = Math.min(minB, b);
+      totalUsage += uses;
+    }
+    return {
+      maxR,
+      maxG,
+      maxB,
+      minR,
+      minG,
+      minB,
+      totalUsage,
+      rangeR: (maxR - minR) * 1.2,
+      rangeG: (maxG - minG) * 1.2,
+      rangeB: maxB - minB,
+    };
+  }
+
+  getDominantColorType({ rangeR, rangeG, rangeB }) {
+    if (rangeR > rangeG && rangeR > rangeB) return "r";
+    if (rangeG > rangeR && rangeG > rangeB) return "g";
+    if (rangeB > rangeR && rangeB > rangeG) return "b";
+    return "r";
+  }
+
+  splitCubesByMedian(cubes, colorSize) {
+    let maxIndex = 0;
+    for (let i = 1; i < cubes.length; i++) {
+      if (
+        cubes[i].total > cubes[maxIndex].total && cubes[i].colors.length !== 1
+      ) {
+        maxIndex = i;
+      }
+    }
+    const index = maxIndex;
+    if (cubes[index].total === 1 || cubes[index].colors.length === 1) {
+      return cubes;
+    }
+    const colorType = cubes[index].type;
+    cubes[index].colors.sort((a, b) => a[colorType] - b[colorType]);
+    const splitBorder = Math.floor((cubes[index].colors.length + 1) / 2);
+    const split1 = this.calculateCubeProperties(
+      cubes[index].colors.slice(0, splitBorder),
+    );
+    const split2 = this.calculateCubeProperties(
+      cubes[index].colors.slice(splitBorder),
+    );
+    const result = cubes.filter((_, i) => i !== index);
+    result.push(split1, split2);
+    return result.length < colorSize
+      ? this.splitCubesByMedian(result, colorSize)
+      : result;
+  }
+
+  apply(colorSize, update) {
+    if (this.colors.length <= colorSize) return;
+    const initialCube = this.calculateCubeProperties(this.colors);
+    const cubes = this.splitCubesByMedian([initialCube], colorSize);
+    const replaceColors = cubes.map((cube) => {
+      let totalR = 0, totalG = 0, totalB = 0, totalUses = 0;
+      for (const col of cube.colors) {
+        const { r, g, b, uses } = col;
+        totalR += r * uses;
+        totalG += g * uses;
+        totalB += b * uses;
+        totalUses += uses;
+      }
+      return {
+        r: Math.round(totalR / totalUses),
+        g: Math.round(totalG / totalUses),
+        b: Math.round(totalB / totalUses),
+      };
+    });
+    if (update) {
+      const pixels = new Map();
+      cubes.forEach((cube, i) => {
+        cube.colors.forEach(({ r, g, b }) => {
+          const key = (r * 256 + g) * 256 + b;
+          pixels.set(key, replaceColors[i]);
+        });
+      });
+      const { raw } = this;
+      for (let i = 0; i < raw.length; i += 4) {
+        const r = raw[i];
+        const g = raw[i + 1];
+        const b = raw[i + 2];
+        const key = (r * 256 + g) * 256 + b;
+        const color = pixels.get(key);
+        if (color) {
+          raw[i] = color.r;
+          raw[i + 1] = color.g;
+          raw[i + 2] = color.b;
+        }
+      }
+    }
+  }
+}
 
 await loadScript(await getOpenCVPath());
 cv = await cv();

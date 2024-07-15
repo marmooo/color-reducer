@@ -130,11 +130,29 @@
               <div class="position-relative w-100 h-100">
                 <canvas class="w-100 h-100 object-fit-contain"></canvas>
                 <div class="filterNav bg-dark-subtle opacity-75 p-2">
-                  <div class="reduceColor">
+                  <div class="form-group d-flex align-items-center">
+                    <div class="filterLabel col-form-label">Filter</div>
+                    <div class="d-flex">
+                      <select class="filterSelect form-select form-selecct-sm w-auto">
+                        <option value="uniformQuantization">uniform quantization</option>
+                        <option value="medianCut">median cut</option>
+                      </select>
+                    </div>
+                  </div>
+                  <div class="uniformQuantization">
                     <div class="form-group d-flex align-items-center">
                       <div class="filterLabel col-form-label">Color</div>
                       <div class="d-flex w-100">
-                        <input type="range" class="color form-range" min="1" max="8" step="1" value="1" data-value="1">
+                        <input type="range" class="color form-range" min="1" max="9" step="1" value="6" data-value="6">
+                        <button title="reset" class="btn p-0" type="button">↩️</button>
+                      </div>
+                    </div>
+                  </div>
+                  <div class="medianCut d-none">
+                    <div class="form-group d-flex align-items-center">
+                      <div class="filterLabel col-form-label">Color</div>
+                      <div class="d-flex w-100">
+                        <input type="range" class="color form-range" min="1" max="8" step="1" value="6" data-value="6">
                         <button title="reset" class="btn p-0" type="button">↩️</button>
                       </div>
                     </div>
