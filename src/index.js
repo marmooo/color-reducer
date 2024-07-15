@@ -312,7 +312,6 @@ class FilterPanel extends LoadPanel {
         const median = Math.floor((index + 0.5) * step);
         colorArray[i] = median;
       }
-      console.log(step, colorArray);
       const lut = cv.matFromArray(1, 256, cv.CV_8U, colorArray);
       cv.LUT(src, lut, src);
       cv.imshow(this.canvas, src);
@@ -378,19 +377,17 @@ class FilterPanel extends LoadPanel {
 
 class MedianCut {
   constructor(imageData) {
-    this.raw = imageData.data;
-    this.width = imageData.width;
-    this.height = imageData.height;
+    this.imageData = imageData.data;
     this.colors = this.getColorInfo();
   }
 
   getColorInfo() {
-    const { raw } = this;
+    const { imageData } = this;
     const colorCount = new Map();
-    for (let i = 0; i < raw.length; i += 4) {
-      const r = raw[i];
-      const g = raw[i + 1];
-      const b = raw[i + 2];
+    for (let i = 0; i < imageData.length; i += 4) {
+      const r = imageData[i];
+      const g = imageData[i + 1];
+      const b = imageData[i + 2];
       const key = (r * 256 + g) * 256 + b;
       colorCount.set(key, (colorCount.get(key) || 0) + 1);
     }
@@ -505,17 +502,17 @@ class MedianCut {
           pixels.set(key, replaceColors[i]);
         });
       });
-      const { raw } = this;
-      for (let i = 0; i < raw.length; i += 4) {
-        const r = raw[i];
-        const g = raw[i + 1];
-        const b = raw[i + 2];
+      const { imageData } = this;
+      for (let i = 0; i < imageData.length; i += 4) {
+        const r = imageData[i];
+        const g = imageData[i + 1];
+        const b = imageData[i + 2];
         const key = (r * 256 + g) * 256 + b;
         const color = pixels.get(key);
         if (color) {
-          raw[i] = color.r;
-          raw[i + 1] = color.g;
-          raw[i + 2] = color.b;
+          imageData[i] = color.r;
+          imageData[i + 1] = color.g;
+          imageData[i + 2] = color.b;
         }
       }
     }
