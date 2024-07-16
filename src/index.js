@@ -396,7 +396,7 @@ class MedianCut {
       const r = key >> 16;
       const g = (key >> 8) & 0xff;
       const b = key & 0xff;
-      colors.push({ r, g, b, uses });
+      colors.push([r, g, b, uses]);
     });
     return colors;
   }
@@ -416,7 +416,7 @@ class MedianCut {
     let maxR = 0, maxG = 0, maxB = 0;
     let minR = 255, minG = 255, minB = 255;
     for (const color of colorArray) {
-      const { r, g, b, uses } = color;
+      const [r, g, b, uses] = color;
       maxR = Math.max(maxR, r);
       maxG = Math.max(maxG, g);
       maxB = Math.max(maxB, b);
@@ -460,7 +460,8 @@ class MedianCut {
       return cubes;
     }
     const colorType = cubes[index].type;
-    cubes[index].colors.sort((a, b) => a[colorType] - b[colorType]);
+    const colorIndex = "rgb".indexOf(colorType);
+    cubes[index].colors.sort((a, b) => a[colorIndex] - b[colorIndex]);
     const splitBorder = Math.floor((cubes[index].colors.length + 1) / 2);
     const split1 = this.calculateCubeProperties(
       cubes[index].colors.slice(0, splitBorder),
@@ -482,7 +483,7 @@ class MedianCut {
     const replaceColors = cubes.map((cube) => {
       let totalR = 0, totalG = 0, totalB = 0, totalUses = 0;
       for (const col of cube.colors) {
-        const { r, g, b, uses } = col;
+        const [r, g, b, uses] = col;
         totalR += r * uses;
         totalG += g * uses;
         totalB += b * uses;
@@ -497,7 +498,7 @@ class MedianCut {
     if (update) {
       const pixels = new Map();
       cubes.forEach((cube, i) => {
-        cube.colors.forEach(({ r, g, b }) => {
+        cube.colors.forEach(([r, g, b]) => {
           const key = (r * 256 + g) * 256 + b;
           pixels.set(key, replaceColors[i]);
         });
