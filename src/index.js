@@ -150,7 +150,7 @@ class LoadPanel extends Panel {
   handleImageOnloadEvent = (event) => {
     const img = event.currentTarget;
     filterPanel.setCanvas(img);
-    const filter = filterPanel.filters.uniformQuantization;
+    const filter = new filterPanel.filters.uniformQuantization(filterPanel);
     filter.apply(...filter.defaultOptions);
   };
 
@@ -219,7 +219,7 @@ class FilterPanel extends LoadPanel {
     panel.querySelector(".download").onclick = () => this.download();
     panel.querySelector(".filterSelect").onchange = (event) =>
       this.filterSelect(event);
-    this.addEvents(panel);
+    this.addFilters();
   }
 
   show() {
@@ -253,109 +253,14 @@ class FilterPanel extends LoadPanel {
     this.panel.querySelector(`.${prevClass}`).classList.add("d-none");
     this.panel.querySelector(`.${currClass}`).classList.remove("d-none");
     this.selectedIndex = selectedIndex;
-    const filter = this.filters[currClass];
+    const filter = new this.filters[currClass](this);
     filter.apply(...filter.defaultOptions);
   }
 
-  addEvents(panel) {
+  addFilters() {
     this.filtering = false;
-    this.addUniformQuantizationEvents(panel);
-    this.addMedianCutEvents(panel);
-  }
-
-  addInputEvents(filter) {
-    for (const input of Object.values(filter.inputs)) {
-      input.oninput = () => filter.apply();
-      input.onchange = () => filter.apply();
-    }
-    for (const node of filter.root.querySelectorAll("button[title=reset]")) {
-      node.onclick = () => {
-        const rangeInput = node.previousElementSibling;
-        rangeInput.value = rangeInput.dataset.value;
-        filter.apply();
-      };
-    }
-  }
-
-  addUniformQuantizationEvents(panel) {
-    const root = panel.querySelector(".uniformQuantization");
-    this.filters.uniformQuantization = {
-      root,
-      apply: (range) => {
-        this.uniformQuantization(range);
-      },
-      defaultOptions: [6],
-      inputs: {
-        color: root.querySelector(".color"),
-      },
-    };
-    this.addInputEvents(this.filters.uniformQuantization);
-  }
-
-  uniformQuantization(color) {
-    const filter = this.filters.uniformQuantization;
-    const inputs = filter.inputs;
-    if (color === undefined) {
-      color = Number(inputs.color.value);
-    } else {
-      inputs.color.value = color;
-    }
-    if (color === 8) {
-      this.canvasContext.drawImage(this.offscreenCanvas, 0, 0);
-    } else {
-      const src = cv.imread(this.offscreenCanvas);
-
-      const step = 256 / 2 ** color;
-      const colorArray = new Array(256);
-      for (let i = 0; i < colorArray.length; i++) {
-        const index = Math.floor(i / step);
-        const median = Math.floor((index + 0.5) * step);
-        colorArray[i] = median;
-      }
-      const lut = cv.matFromArray(1, 256, cv.CV_8U, colorArray);
-      cv.LUT(src, lut, src);
-      cv.imshow(this.canvas, src);
-      src.delete();
-      lut.delete();
-    }
-  }
-
-  addMedianCutEvents(panel) {
-    const root = panel.querySelector(".medianCut");
-    this.filters.medianCut = {
-      root,
-      apply: (range) => {
-        this.medianCut(range);
-      },
-      defaultOptions: [6],
-      inputs: {
-        color: root.querySelector(".color"),
-      },
-    };
-    this.addInputEvents(this.filters.medianCut);
-  }
-
-  medianCut(color) {
-    const filter = this.filters.medianCut;
-    const inputs = filter.inputs;
-    if (color === undefined) {
-      color = Number(inputs.color.value);
-    } else {
-      inputs.color.value = color;
-    }
-    if (color === 9) {
-      this.canvasContext.drawImage(this.offscreenCanvas, 0, 0);
-    } else {
-      const imageData = this.offscreenCanvasContext.getImageData(
-        0,
-        0,
-        this.canvas.width,
-        this.canvas.height,
-      );
-      const medianCut = new MedianCut(imageData);
-      medianCut.apply(color ** 2, true);
-      this.canvasContext.putImageData(imageData, 0, 0);
-    }
+    this.filters.uniformQuantization = UniformQuantizationFilter;
+    this.filters.medianCut = MedianCutFilter;
   }
 
   setCanvas(canvas) {
@@ -372,6 +277,113 @@ class FilterPanel extends LoadPanel {
     }
     this.canvasContext.drawImage(canvas, 0, 0);
     this.offscreenCanvasContext.drawImage(canvas, 0, 0);
+  }
+}
+
+class Filter {
+  constructor(root, inputs) {
+    this.root = root;
+    this.inputs = inputs;
+    this.addInputEvents(root, inputs);
+  }
+
+  apply() {
+  }
+
+  addInputEvents(root, inputs) {
+    for (const input of Object.values(inputs)) {
+      input.oninput = () => this.apply();
+      input.onchange = () => this.apply();
+    }
+    for (const node of root.querySelectorAll("button[title=reset]")) {
+      node.onclick = () => {
+        const rangeInput = node.previousElementSibling;
+        rangeInput.value = rangeInput.dataset.value;
+        this.apply();
+      };
+    }
+  }
+}
+
+class UniformQuantizationFilter extends Filter {
+  defaultOptions = [6];
+
+  constructor(filterPanel) {
+    const root = filterPanel.panel.querySelector(".uniformQuantization");
+    const inputs = {
+      color: root.querySelector(".color"),
+    };
+    super(root, inputs);
+    this.filterPanel = filterPanel;
+  }
+
+  apply(color) {
+    const { inputs, filterPanel } = this;
+    if (color === undefined) {
+      color = Number(inputs.color.value);
+    } else {
+      inputs.color.value = color;
+    }
+    if (color === 8) {
+      canvasContext.drawImage(filterPanel.offscreenCanvas, 0, 0);
+    } else {
+      const src = cv.imread(filterPanel.offscreenCanvas);
+
+      const step = 256 / 2 ** color;
+      const colorArray = new Array(256);
+      for (let i = 0; i < colorArray.length; i++) {
+        const index = Math.floor(i / step);
+        const median = Math.floor((index + 0.5) * step);
+        colorArray[i] = median;
+      }
+      const lut = cv.matFromArray(1, 256, cv.CV_8U, colorArray);
+      cv.LUT(src, lut, src);
+      cv.imshow(filterPanel.canvas, src);
+      src.delete();
+      lut.delete();
+    }
+  }
+}
+
+class MedianCutFilter extends Filter {
+  defaultOptions = [6];
+
+  constructor(filterPanel) {
+    const root = filterPanel.panel.querySelector(".medianCut");
+    const inputs = {
+      color: root.querySelector(".color"),
+    };
+    super(root, inputs);
+    const imageData = filterPanel.offscreenCanvasContext.getImageData(
+      0,
+      0,
+      filterPanel.canvas.width,
+      filterPanel.canvas.height,
+    );
+    this.filterPanel = filterPanel;
+    this.medianCut = new MedianCut(imageData);
+  }
+
+  apply(color) {
+    const { inputs, filterPanel } = this;
+    if (color === undefined) {
+      color = Number(inputs.color.value);
+    } else {
+      inputs.color.value = color;
+    }
+    if (color === 8) {
+      filterPanel.canvasContext.drawImage(filterPanel.offscreenCanvas, 0, 0);
+    } else {
+      const imageData = filterPanel.offscreenCanvasContext.getImageData(
+        0,
+        0,
+        filterPanel.canvas.width,
+        filterPanel.canvas.height,
+      );
+      this.medianCut.imageData = imageData.data;
+      this.medianCut.apply(color ** 2, true);
+      filterPanel.canvasContext.putImageData(imageData, 0, 0);
+    }
   }
 }
 
