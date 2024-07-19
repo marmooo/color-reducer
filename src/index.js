@@ -458,6 +458,18 @@ class MedianCut {
     return "g";
   }
 
+  bucketSort(colors, colorIndex) {
+    const buckets = new Array(256);
+    for (let i = 0; i < 256; i++) {
+      buckets[i] = [];
+    }
+    for (let i = 0; i < colors.length; i++) {
+      const color = colors[i];
+      buckets[color[colorIndex]].push(color);
+    }
+    return buckets.flat();
+  }
+
   splitCubesByMedian(cubes, colorSize) {
     let maxIndex = 0;
     for (let i = 1; i < cubes.length; i++) {
@@ -473,7 +485,7 @@ class MedianCut {
     }
     const colorType = cubes[index].type;
     const colorIndex = "rgb".indexOf(colorType);
-    cubes[index].colors.sort((a, b) => a[colorIndex] - b[colorIndex]);
+    cubes[index].colors = this.bucketSort(cubes[index].colors, colorIndex);
     const splitBorder = Math.floor((cubes[index].colors.length + 1) / 2);
     const split1 = this.calculateCubeProperties(
       cubes[index].colors.slice(0, splitBorder),
