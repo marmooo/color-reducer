@@ -325,7 +325,7 @@ class UniformQuantizationFilter extends Filter {
       inputs.color.value = color;
     }
     if (color === 8) {
-      canvasContext.drawImage(filterPanel.offscreenCanvas, 0, 0);
+      filterPanel.canvasContext.drawImage(filterPanel.offscreenCanvas, 0, 0);
     } else {
       const src = cv.imread(filterPanel.offscreenCanvas);
 
@@ -371,7 +371,7 @@ class MedianCutFilter extends Filter {
     } else {
       inputs.color.value = color;
     }
-    if (color === 8) {
+    if (color === 9) {
       filterPanel.canvasContext.drawImage(filterPanel.offscreenCanvas, 0, 0);
     } else {
       const imageData = filterPanel.offscreenCanvasContext.getImageData(
@@ -381,7 +381,7 @@ class MedianCutFilter extends Filter {
         filterPanel.canvas.height,
       );
       this.medianCut.imageData = imageData.data;
-      this.medianCut.apply(color ** 2, true);
+      this.medianCut.apply(2 ** color, true);
       filterPanel.canvasContext.putImageData(imageData, 0, 0);
     }
   }
@@ -445,9 +445,9 @@ class MedianCut {
       minG,
       minB,
       totalUsage,
-      rangeR: (maxR - minR) * 1.2,
-      rangeG: (maxG - minG) * 1.2,
-      rangeB: maxB - minB,
+      rangeR: (maxR - minR),
+      rangeG: (maxG - minG),
+      rangeB: (maxB - minB),
     };
   }
 
@@ -455,7 +455,7 @@ class MedianCut {
     if (rangeR > rangeG && rangeR > rangeB) return "r";
     if (rangeG > rangeR && rangeG > rangeB) return "g";
     if (rangeB > rangeR && rangeB > rangeG) return "b";
-    return "r";
+    return "g";
   }
 
   splitCubesByMedian(cubes, colorSize) {
