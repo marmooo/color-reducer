@@ -395,21 +395,44 @@ class MedianCut {
 
   getColorInfo() {
     const { imageData } = this;
-    const colorCount = new Map();
-    for (let i = 0; i < imageData.length; i += 4) {
-      const r = imageData[i];
-      const g = imageData[i + 1];
-      const b = imageData[i + 2];
-      const key = (r * 256 + g) * 256 + b;
-      colorCount.set(key, (colorCount.get(key) || 0) + 1);
+    // const colorCount = new Uint32Array(16777216);
+    // for (let i = 0; i < imageData.length; i += 4) {
+    //   const r = imageData[i];
+    //   const g = imageData[i + 1];
+    //   const b = imageData[i + 2];
+    //   const key = (r << 16) | (g << 8) | b;
+    //   colorCount[key]++;
+    // }
+    // const colors = [];
+    // for (let key = 0; key < colorCount.length; key++) {
+    //   const uses = colorCount[key];
+    //   if (uses > 0) {
+    //     const r = (key >> 16) & 0xFF;
+    //     const g = (key >> 8) & 0xFF;
+    //     const b = key & 0xFF;
+    //     colors.push([r, g, b, uses]);
+    //   }
+    // }
+    const uint32ImageData = new Uint32Array(imageData.buffer);
+    const colorCount = new Uint32Array(16777216);
+    for (let i = 0; i < uint32ImageData.length; i++) {
+      const rgba = uint32ImageData[i];
+      const r = rgba & 0xFF;
+      const g = (rgba >> 8) & 0xFF;
+      const b = (rgba >> 16) & 0xFF;
+      const key = (r << 16) | (g << 8) | b;
+      colorCount[key]++;
     }
     const colors = [];
-    colorCount.forEach((uses, key) => {
-      const r = key >> 16;
-      const g = (key >> 8) & 0xff;
-      const b = key & 0xff;
-      colors.push([r, g, b, uses]);
-    });
+    for (let key = 0; key < colorCount.length; key++) {
+      const uses = colorCount[key];
+      if (uses > 0) {
+        const r = (key >> 16) & 0xFF;
+        const g = (key >> 8) & 0xFF;
+        const b = key & 0xFF;
+        colors.push([r, g, b, uses]);
+      }
+    }
     return colors;
   }
 
@@ -520,25 +543,44 @@ class MedianCut {
       };
     });
     if (update) {
-      const pixels = new Map();
+      // const { imageData } = this;
+      // const colorMapping = new Array(16777216);
+      // cubes.forEach((cube, i) => {
+      //   cube.colors.forEach(([r, g, b]) => {
+      //     const key = (r * 256 + g) * 256 + b;
+      //     colorMapping[key] = replaceColors[i];
+      //   });
+      // });
+      // for (let i = 0; i < imageData.length; i += 4) {
+      //   const r = imageData[i];
+      //   const g = imageData[i + 1];
+      //   const b = imageData[i + 2];
+      //   const key = (r * 256 + g) * 256 + b;
+      //   const color = colorMapping[key];
+      //   if (color) {
+      //     imageData[i] = color.r;
+      //     imageData[i + 1] = color.g;
+      //     imageData[i + 2] = color.b;
+      //   }
+      // }
+      const uint32ImageData = new Uint32Array(this.imageData.buffer);
+      const colorMapping = new Uint32Array(16777216);
       cubes.forEach((cube, i) => {
         cube.colors.forEach(([r, g, b]) => {
           const key = (r * 256 + g) * 256 + b;
-          pixels.set(key, replaceColors[i]);
+          colorMapping[key] = (replaceColors[i].r << 0) |
+            (replaceColors[i].g << 8) |
+            (replaceColors[i].b << 16) |
+            0xFF000000;
         });
       });
-      const { imageData } = this;
-      for (let i = 0; i < imageData.length; i += 4) {
-        const r = imageData[i];
-        const g = imageData[i + 1];
-        const b = imageData[i + 2];
+      for (let i = 0; i < uint32ImageData.length; i++) {
+        const rgba = uint32ImageData[i];
+        const r = (rgba >> 0) & 0xFF;
+        const g = (rgba >> 8) & 0xFF;
+        const b = (rgba >> 16) & 0xFF;
         const key = (r * 256 + g) * 256 + b;
-        const color = pixels.get(key);
-        if (color) {
-          imageData[i] = color.r;
-          imageData[i + 1] = color.g;
-          imageData[i + 2] = color.b;
-        }
+        uint32ImageData[i] = colorMapping[key] || rgba;
       }
     }
   }
