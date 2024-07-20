@@ -424,9 +424,9 @@ class MedianCut {
     for (let key = 0; key < colorCount.length; key++) {
       const uses = colorCount[key];
       if (uses > 0) {
-        const r = (key >> 16) & 0xFF;
+        const b = (key >> 16) & 0xFF;
         const g = (key >> 8) & 0xFF;
-        const b = key & 0xFF;
+        const r = key & 0xFF;
         colors.push([r, g, b, uses]);
       }
     }
@@ -533,11 +533,10 @@ class MedianCut {
         totalB += b * uses;
         totalUses += uses;
       }
-      return {
-        r: Math.round(totalR / totalUses),
-        g: Math.round(totalG / totalUses),
-        b: Math.round(totalB / totalUses),
-      };
+      const avgR = Math.round(totalR / totalUses);
+      const avgG = Math.round(totalG / totalUses);
+      const avgB = Math.round(totalB / totalUses);
+      return (avgB * 256 + avgG) * 256 + avgR;
     });
     if (update) {
       // const { imageData } = this;
@@ -564,18 +563,17 @@ class MedianCut {
       const colorMapping = new Uint32Array(16777216);
       cubes.forEach((cube, i) => {
         cube.colors.forEach(([r, g, b]) => {
-          const key = (r * 256 + g) * 256 + b;
-          colorMapping[key] = replaceColors[i].r |
-            (replaceColors[i].g << 8) |
-            (replaceColors[i].b << 16) |
-            0xFF000000;
+          const key = (b * 256 + g) * 256 + r;
+          colorMapping[key] = replaceColors[i];
         });
       });
       for (let i = 0; i < uint32ImageData.length; i++) {
         const rgba = uint32ImageData[i];
-        const key = (rgba >> 16) & 0xFFFFF;
-        const newColor = colorMapping[key] || rgba;
-        uint32ImageData[i] = (newColor & 0xFFFFFF) | (rgba & 0xFF000000);
+        const key = rgba & 0xFFFFFF;
+        const newColor = colorMapping[key];
+        if (newColor) {
+          uint32ImageData[i] = newColor | (rgba & 0xFF000000);
+        }
       }
     }
   }
