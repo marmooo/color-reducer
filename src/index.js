@@ -579,8 +579,10 @@ class MedianCut {
         const r = (rgba >> 0) & 0xFF;
         const g = (rgba >> 8) & 0xFF;
         const b = (rgba >> 16) & 0xFF;
+        const a = (rgba >> 24) & 0xFF;
         const key = (r * 256 + g) * 256 + b;
-        uint32ImageData[i] = colorMapping[key] || rgba;
+        const newColor = colorMapping[key] || rgba;
+        uint32ImageData[i] = (newColor & 0xFFFFFF) | (a << 24);
       }
     }
   }
