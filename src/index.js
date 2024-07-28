@@ -1,6 +1,6 @@
 import { Tooltip } from "https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/+esm";
 import imageCompareViewer from "https://cdn.jsdelivr.net/npm/image-compare-viewer@1.6.2/+esm";
-import { encode } from "/color-reducer/pngs.js";
+import { encode } from "./pngs.js";
 
 function loadConfig() {
   if (localStorage.getItem("darkMode") == 1) {
