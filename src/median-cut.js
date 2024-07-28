@@ -145,9 +145,7 @@ export class MedianCut {
   apply(colorSize, update) {
     if (this.colors.length <= colorSize) return;
     const initialCube = this.calculateCubeProperties(this.colors);
-    console.time("a");
     const cubes = this.splitCubesByMedian([initialCube], colorSize);
-    console.timeEnd("a");
     const replaceColors = cubes.map((cube) => {
       let totalR = 0, totalG = 0, totalB = 0, totalUses = 0;
       const colors = cube.colors;
