@@ -29,22 +29,22 @@ export class MedianCut {
     return colors;
   }
 
-  calculateCubeProperties(colorArray) {
-    const colorStats = this.getColorStats(colorArray);
+  calculateCubeProperties(colors) {
+    const colorStats = this.getColorStats(colors);
     const dominantColorType = this.getDominantColorType(colorStats);
     return {
-      colors: colorArray,
+      colors,
       total: colorStats.totalUsage,
       type: dominantColorType,
     };
   }
 
-  getColorStats(colorArray) {
+  getColorStats(colors) {
     let totalUsage = 0;
     let maxR = 0, maxG = 0, maxB = 0;
     let minR = 255, minG = 255, minB = 255;
-    for (const color of colorArray) {
-      const [r, g, b, uses] = color;
+    for (let i = 0; i < colors.length; i++) {
+      const [r, g, b, uses] = colors[i];
       maxR = Math.max(maxR, r);
       maxG = Math.max(maxG, g);
       maxB = Math.max(maxB, b);
@@ -121,8 +121,9 @@ export class MedianCut {
     const cubes = this.splitCubesByMedian([initialCube], colorSize);
     const replaceColors = cubes.map((cube) => {
       let totalR = 0, totalG = 0, totalB = 0, totalUses = 0;
-      for (const col of cube.colors) {
-        const [r, g, b, uses] = col;
+      const colors = cube.colors;
+      for (let i = 0; i < colors.length; i++) {
+        const [r, g, b, uses] = colors[i];
         totalR += r * uses;
         totalG += g * uses;
         totalB += b * uses;
