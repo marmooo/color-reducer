@@ -388,6 +388,9 @@ class MedianCutFilter extends Filter {
 }
 
 class MedianCut {
+  replaceColors;
+  colorMapping;
+
   constructor(imageData) {
     this.imageData = imageData.data;
     this.colors = this.getColorInfo();
@@ -538,6 +541,7 @@ class MedianCut {
       const avgB = Math.round(totalB / totalUses);
       return (avgB * 256 + avgG) * 256 + avgR;
     });
+    this.replaceColors = replaceColors;
     if (update) {
       // const { imageData } = this;
       // const colorMapping = new Array(16777216);
@@ -560,17 +564,20 @@ class MedianCut {
       //   }
       // }
       const uint32ImageData = new Uint32Array(this.imageData.buffer);
-      const colorMapping = new Uint32Array(16777216);
+      const colorMapping = new Uint8Array(16777216);
       cubes.forEach((cube, i) => {
-        cube.colors.forEach(([r, g, b]) => {
+        const colors = cube.colors;
+        for (let j = 0; j < colors.length; j++) {
+          const [r, g, b] = colors[j];
           const key = (b * 256 + g) * 256 + r;
-          colorMapping[key] = replaceColors[i];
-        });
+          colorMapping[key] = i;
+        }
       });
+      this.colorMapping = colorMapping;
       for (let i = 0; i < uint32ImageData.length; i++) {
         const rgba = uint32ImageData[i];
         const key = rgba & 0xFFFFFF;
-        const newColor = colorMapping[key];
+        const newColor = replaceColors[colorMapping[key]];
         if (newColor) {
           uint32ImageData[i] = newColor | (rgba & 0xFF000000);
         }
