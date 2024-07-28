@@ -1,5 +1,6 @@
 import { Tooltip } from "https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/+esm";
 import imageCompareViewer from "https://cdn.jsdelivr.net/npm/image-compare-viewer@1.6.2/+esm";
+import { encode } from "/color-reducer/pngs.js";
 
 function loadConfig() {
   if (localStorage.getItem("darkMode") == 1) {
@@ -151,6 +152,7 @@ class LoadPanel extends Panel {
     const img = event.currentTarget;
     filterPanel.setCanvas(img);
     const filter = new filterPanel.filters.uniformQuantization(filterPanel);
+    filterPanel.currentFilter = filter;
     filter.apply(...filter.defaultOptions);
   };
 
@@ -200,6 +202,7 @@ class LoadPanel extends Panel {
 
 class FilterPanel extends LoadPanel {
   filters = {};
+  currentFilter;
 
   constructor(panel) {
     super(panel);
@@ -220,6 +223,7 @@ class FilterPanel extends LoadPanel {
     panel.querySelector(".filterSelect").onchange = (event) =>
       this.filterSelect(event);
     this.addFilters();
+    this.outputOptions = new OutputOptions(this);
   }
 
   show() {
@@ -232,17 +236,93 @@ class FilterPanel extends LoadPanel {
     loadPanel.show();
   }
 
+  downloadFile(file) {
+    const a = document.createElement("a");
+    const url = URL.createObjectURL(file);
+    a.href = url;
+    a.download = file.name;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(url);
+  }
+
+  downloadCanvas(type, quality) {
+    let ext = type.split("/")[1];
+    if (ext == "jpeg") ext = "jpg";
+    const name = `reduced.${ext}`;
+    this.canvas.toBlob(
+      (blob) => {
+        const file = new File([blob], name, { type });
+        this.downloadFile(file);
+      },
+      type,
+      quality,
+    );
+  }
+
+  toPNG8() {
+    const { width, height } = this.canvas;
+    const medianCut = this.currentFilter.medianCut;
+    const { replaceColors, colorMapping, imageData } = medianCut;
+    const palette = new Uint8Array(replaceColors.length * 3);
+    for (let i = 0; i < replaceColors.length; i++) {
+      const key = replaceColors[i];
+      const j = i * 3;
+      palette[j] = key & 0xFF;
+      palette[j + 1] = (key >> 8) & 0xFF;
+      palette[j + 2] = (key >> 16) & 0xFF;
+    }
+    const mappedImageData = new Uint8Array(width * height);
+    const uint32ImageData = new Uint32Array(imageData.buffer);
+    replaceColors.forEach((key, i) => {
+      colorMapping[key] = i;
+    });
+    for (let i = 0; i < uint32ImageData.length; i++) {
+      const rgba = uint32ImageData[i];
+      const key = rgba & 0xFFFFFF;
+      mappedImageData[i] = colorMapping[key];
+    }
+    return encode(mappedImageData, width, height, {
+      palette,
+      color: 3, // Indexed
+      compression: 2, // Best
+    });
+  }
+
+  toPNG() {
+    const { width, height } = this.canvas;
+    const imageData = this.canvasContext.getImageData(0, 0, width, height);
+    return encode(imageData.data, width, height, {
+      compression: 2, // Best
+    });
+  }
+
   download() {
-    this.canvas.toBlob((blob) => {
-      const a = document.createElement("a");
-      const url = URL.createObjectURL(blob);
-      a.href = url;
-      a.download = "reduced.png";
-      document.body.appendChild(a);
-      a.click();
-      a.remove();
-      URL.revokeObjectURL(url);
-    }, "image/png");
+    const typeSelect = this.panel.querySelector(".typeSelect");
+    const type = typeSelect.options[typeSelect.selectedIndex].value;
+    const quality = Number(this.panel.querySelector(".quality").value);
+    if (this.currentFilter instanceof MedianCutFilter) {
+      if (type == "image/png") {
+        const png = this.toPNG8();
+        const blob = new Blob([png.buffer]);
+        const name = "reduced.png";
+        const file = new File([blob], name, { type });
+        this.downloadFile(file);
+      } else {
+        this.downloadCanvas(type, quality);
+      }
+    } else {
+      if (type == "image/png") {
+        const png = this.toPNG();
+        const blob = new Blob([png.buffer]);
+        const name = "reduced.png";
+        const file = new File([blob], name, { type });
+        this.downloadFile(file);
+      } else {
+        this.downloadCanvas(type, quality);
+      }
+    }
   }
 
   filterSelect(event) {
@@ -254,6 +334,7 @@ class FilterPanel extends LoadPanel {
     this.panel.querySelector(`.${currClass}`).classList.remove("d-none");
     this.selectedIndex = selectedIndex;
     const filter = new this.filters[currClass](this);
+    this.currentFilter = filter;
     filter.apply(...filter.defaultOptions);
   }
 
@@ -301,6 +382,72 @@ class Filter {
         rangeInput.dispatchEvent(new Event("input"));
       };
     }
+  }
+}
+
+class OutputOptions extends Filter {
+  cached = false;
+  defaultOptions = [0.8];
+
+  constructor(filterPanel) {
+    const root = filterPanel.panel.querySelector(".outputOptions");
+    const inputs = {
+      quality: root.querySelector(".quality"),
+    };
+    super(root, inputs);
+    this.filterPanel = filterPanel;
+    this.canvas = document.createElement("canvas");
+    this.canvasContext = this.canvas.getContext("2d", {
+      willReadFrequently: true,
+    });
+    this.typeSelect = this.root.querySelector(".typeSelect");
+    this.checkFilterEvents();
+  }
+
+  checkFilterEvents() {
+    const filters = this.filterPanel.panel.querySelector(".filters");
+    for (const input of filters.querySelectorAll("input")) {
+      input.addEventListener("input", () => {
+        this.cached = false;
+        this.inputs.quality.value = this.defaultOptions[0];
+        filterPanel.canvasContext.drawImage(this.canvas, 0, 0);
+      });
+    }
+    this.typeSelect.addEventListener("change", () => {
+      this.cached = false;
+      this.inputs.quality.value = this.defaultOptions[0];
+      filterPanel.canvasContext.drawImage(this.canvas, 0, 0);
+    });
+  }
+
+  apply(quality) {
+    const { inputs, filterPanel, typeSelect, canvas } = this;
+    const type = typeSelect.options[typeSelect.selectedIndex].value;
+    if (quality === undefined) {
+      quality = Number(inputs.quality.value);
+    } else {
+      inputs.quality.value = color;
+    }
+    if (!this.cached) {
+      const { width, height } = filterPanel.canvas;
+      canvas.width = width;
+      canvas.height = height;
+      this.canvasContext.drawImage(filterPanel.canvas, 0, 0);
+      this.cached = true;
+    }
+    canvas.toBlob(
+      (blob) => {
+        const file = new File([blob], "", { type });
+        const url = URL.createObjectURL(file);
+        const img = new Image();
+        img.onload = () => {
+          filterPanel.canvasContext.drawImage(img, 0, 0);
+        };
+        img.src = url;
+      },
+      type,
+      quality,
+    );
   }
 }
 

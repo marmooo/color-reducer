@@ -132,31 +132,53 @@
                 <div class="filterNav bg-dark-subtle opacity-75 p-2">
                   <div class="form-group d-flex align-items-center">
                     <div class="filterLabel col-form-label">Filter</div>
-                    <div class="d-flex">
-                      <select class="filterSelect form-select form-selecct-sm w-auto">
+                    <div class="d-flex w-100">
+                      <select class="filterSelect form-select form-selecct-sm">
                         <option value="uniformQuantization">uniform quantization</option>
                         <option value="medianCut">median cut</option>
                       </select>
                     </div>
                   </div>
-                  <div class="uniformQuantization">
-                    <div class="form-group d-flex align-items-center">
-                      <div class="filterLabel col-form-label">Color</div>
-                      <div class="d-flex w-100">
-                        <input type="range" class="color form-range" min="1" max="8" step="1" value="6" data-value="6">
-                        <button title="reset" class="btn p-0" type="button">↩️</button>
+                  <div class="filters">
+                    <div class="uniformQuantization">
+                      <div class="form-group d-flex align-items-center">
+                        <div class="filterLabel col-form-label">Color</div>
+                        <div class="d-flex w-100">
+                          <input type="range" class="color form-range" min="1" max="8" step="1" value="6" data-value="6">
+                          <button title="reset" class="btn p-0" type="button">↩️</button>
+                        </div>
+                      </div>
+                    </div>
+                    <div class="medianCut d-none">
+                      <div class="form-group d-flex align-items-center">
+                        <div class="filterLabel col-form-label">Color</div>
+                        <div class="d-flex w-100">
+                          <input type="range" class="color form-range" min="1" max="9" step="1" value="6" data-value="6">
+                          <button title="reset" class="btn p-0" type="button">↩️</button>
+                        </div>
                       </div>
                     </div>
                   </div>
-                  <div class="medianCut d-none">
-                    <div class="form-group d-flex align-items-center">
-                      <div class="filterLabel col-form-label">Color</div>
-                      <div class="d-flex w-100">
-                        <input type="range" class="color form-range" min="1" max="9" step="1" value="6" data-value="6">
-                        <button title="reset" class="btn p-0" type="button">↩️</button>
+                  <details>
+                    <summary>Output Options</summary>
+                    <div class="outputOptions">
+                      <div class="form-group d-flex align-items-center">
+                        <div class="filterLabel col-form-label">Type</div>
+                        <select class="typeSelect form-select form-selecct-sm">
+                          <option>image/png</option>
+                          <option>image/jpeg</option>
+                          <option>image/webp</option>
+                        </select>
+                      </div>
+                      <div class="form-group d-flex align-items-center">
+                        <div class="filterLabel col-form-label">Quality</div>
+                        <div class="d-flex w-100">
+                          <input type="range" class="quality form-range" min="0" max="1" step="0.01" value="0.8" data-value="0.8">
+                          <button title="reset" class="btn p-0" type="button">↩️</button>
+                        </div>
                       </div>
                     </div>
-                  </div>
+                  </details>
                 </div>
               </div>
             </div>
