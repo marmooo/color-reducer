@@ -83,7 +83,36 @@ export class MedianCut {
       const color = colors[i];
       buckets[color[colorIndex]].push(color);
     }
-    return buckets.flat();
+    return buckets;
+  }
+
+  splitBuckets(buckets, half) {
+    const split1 = [];
+    const split2 = [];
+    let count = 0;
+    for (let i = 0; i < 256; i++) {
+      const bucket = buckets[i];
+      const bucketLength = bucket.length;
+      if (count + bucketLength <= half) {
+        split1.push(...bucket);
+        count += bucketLength;
+      } else {
+        const remaining = half - count;
+        split1.push(...bucket.slice(0, remaining));
+        split2.push(...bucket.slice(remaining));
+        for (let j = i + 1; j < 256; j++) {
+          split2.push(...buckets[j]);
+        }
+        break;
+      }
+    }
+    return [split1, split2];
+  }
+
+  sortAndSplit(colors, colorIndex) {
+    const buckets = this.bucketSort(colors, colorIndex);
+    const half = Math.floor((colors.length + 1) / 2);
+    return this.splitBuckets(buckets, half);
   }
 
   splitCubesByMedian(cubes, colorSize) {
@@ -102,14 +131,12 @@ export class MedianCut {
       if (cubes[maxIndex].colors.length === 1) break;
       const colorType = cubes[maxIndex].type;
       const colorIndex = "rgb".indexOf(colorType);
-      const sortedColors = this.bucketSort(cubes[maxIndex].colors, colorIndex);
-      const splitBorder = Math.floor((sortedColors.length + 1) / 2);
-      const split1 = this.calculateCubeProperties(
-        sortedColors.slice(0, splitBorder),
+      const [colors1, colors2] = this.sortAndSplit(
+        cubes[maxIndex].colors,
+        colorIndex,
       );
-      const split2 = this.calculateCubeProperties(
-        sortedColors.slice(splitBorder),
-      );
+      const split1 = this.calculateCubeProperties(colors1);
+      const split2 = this.calculateCubeProperties(colors2);
       cubes.splice(maxIndex, 1, split1, split2);
     }
     return cubes;
@@ -118,7 +145,9 @@ export class MedianCut {
   apply(colorSize, update) {
     if (this.colors.length <= colorSize) return;
     const initialCube = this.calculateCubeProperties(this.colors);
+    console.time("a");
     const cubes = this.splitCubesByMedian([initialCube], colorSize);
+    console.timeEnd("a");
     const replaceColors = cubes.map((cube) => {
       let totalR = 0, totalG = 0, totalB = 0, totalUses = 0;
       const colors = cube.colors;
