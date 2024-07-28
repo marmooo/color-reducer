@@ -1,4 +1,4 @@
-const CACHE_NAME = "2024-06-28 11:40";
+const CACHE_NAME = "2024-07-28 14:00";
 const urlsToCache = [
   "/lineart-converter/",
   "/lineart-converter/en/",
@@ -10,6 +10,7 @@ const urlsToCache = [
   "/lineart-converter/img/car-64.webp",
   "/lineart-converter/img/cat-64.webp",
   "/lineart-converter/img/castle-64.webp",
+  "/lineart-converter/pngs/pngs_bg.wasm",
   "/lineart-converter/favicon/favicon.svg",
   "https://cdn.jsdelivr.net/npm/wasm-feature-detect@1.6.1/dist/umd/index.min.js",
 ];
