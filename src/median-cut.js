@@ -87,33 +87,32 @@ export class MedianCut {
   }
 
   splitCubesByMedian(cubes, colorSize) {
-    let maxIndex = 0;
-    for (let i = 1; i < cubes.length; i++) {
-      if (
-        cubes[i].total > cubes[maxIndex].total && cubes[i].colors.length !== 1
-      ) {
-        maxIndex = i;
+    while (cubes.length < colorSize) {
+      let maxIndex = 0;
+      let maxTotal = cubes[0].total;
+      for (let i = 1; i < cubes.length; i++) {
+        const cube = cubes[i];
+        const total = cube.total;
+        if (total > maxTotal && cube.colors.length > 1) {
+          maxIndex = i;
+          maxTotal = total;
+        }
       }
+      if (cubes[maxIndex].total === 1) break;
+      if (cubes[maxIndex].colors.length === 1) break;
+      const colorType = cubes[maxIndex].type;
+      const colorIndex = "rgb".indexOf(colorType);
+      const sortedColors = this.bucketSort(cubes[maxIndex].colors, colorIndex);
+      const splitBorder = Math.floor((sortedColors.length + 1) / 2);
+      const split1 = this.calculateCubeProperties(
+        sortedColors.slice(0, splitBorder),
+      );
+      const split2 = this.calculateCubeProperties(
+        sortedColors.slice(splitBorder),
+      );
+      cubes.splice(maxIndex, 1, split1, split2);
     }
-    const index = maxIndex;
-    if (cubes[index].total === 1 || cubes[index].colors.length === 1) {
-      return cubes;
-    }
-    const colorType = cubes[index].type;
-    const colorIndex = "rgb".indexOf(colorType);
-    cubes[index].colors = this.bucketSort(cubes[index].colors, colorIndex);
-    const splitBorder = Math.floor((cubes[index].colors.length + 1) / 2);
-    const split1 = this.calculateCubeProperties(
-      cubes[index].colors.slice(0, splitBorder),
-    );
-    const split2 = this.calculateCubeProperties(
-      cubes[index].colors.slice(splitBorder),
-    );
-    const result = cubes.filter((_, i) => i !== index);
-    result.push(split1, split2);
-    return result.length < colorSize
-      ? this.splitCubesByMedian(result, colorSize)
-      : result;
+    return cubes;
   }
 
   apply(colorSize, update) {
