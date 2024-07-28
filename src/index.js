@@ -292,14 +292,13 @@ class Filter {
 
   addInputEvents(root, inputs) {
     for (const input of Object.values(inputs)) {
-      input.oninput = () => this.apply();
-      input.onchange = () => this.apply();
+      input.addEventListener("input", () => this.apply());
     }
     for (const node of root.querySelectorAll("button[title=reset]")) {
       node.onclick = () => {
         const rangeInput = node.previousElementSibling;
         rangeInput.value = rangeInput.dataset.value;
-        this.apply();
+        rangeInput.dispatchEvent(new Event("input"));
       };
     }
   }
