@@ -1,6 +1,6 @@
 import init, { encode } from "./pngs/pngs.js";
 
-await init();
+await init("/color-reducer/pngs/pngs_bg.wasm");
 const ColorType = {
   Grayscale: 0,
   RGB: 2,
