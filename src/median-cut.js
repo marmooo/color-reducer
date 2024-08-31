@@ -3,26 +3,26 @@ export class MedianCut {
   colorMapping;
 
   constructor(imageData) {
-    this.imageData = imageData.data;
+    this.imageData = imageData;
     this.colors = this.getColorInfo();
   }
 
   getColorInfo() {
     const { imageData } = this;
-    const uint32ImageData = new Uint32Array(imageData.buffer);
+    const uint32ImageData = new Uint32Array(imageData.data.buffer);
     const colorCount = new Uint32Array(16777216);
     for (let i = 0; i < uint32ImageData.length; i++) {
       const rgba = uint32ImageData[i];
-      const key = rgba & 0xFFFFFF;
-      colorCount[key]++;
+      const rgb = rgba & 0xFFFFFF;
+      colorCount[rgb]++;
     }
     const colors = [];
-    for (let key = 0; key < colorCount.length; key++) {
-      const uses = colorCount[key];
+    for (let rgb = 0; rgb < colorCount.length; rgb++) {
+      const uses = colorCount[rgb];
       if (uses > 0) {
-        const b = (key >> 16) & 0xFF;
-        const g = (key >> 8) & 0xFF;
-        const r = key & 0xFF;
+        const b = (rgb >> 16) & 0xFF;
+        const g = (rgb >> 8) & 0xFF;
+        const r = rgb & 0xFF;
         colors.push([r, g, b, uses]);
       }
     }
@@ -122,17 +122,17 @@ export class MedianCut {
       for (let i = 1; i < cubes.length; i++) {
         const cube = cubes[i];
         const total = cube.total;
-        if (total > maxTotal && cube.colors.length > 1) {
+        if (maxTotal < total) {
           maxIndex = i;
           maxTotal = total;
         }
       }
-      if (cubes[maxIndex].total === 1) break;
-      if (cubes[maxIndex].colors.length === 1) break;
-      const colorType = cubes[maxIndex].type;
-      const colorIndex = "rgb".indexOf(colorType);
+      const maxCube = cubes[maxIndex];
+      if (maxCube.total === 1) break;
+      if (maxCube.colors.length === 1) break;
+      const colorIndex = "rgb".indexOf(maxCube.type);
       const [colors1, colors2] = this.sortAndSplit(
-        cubes[maxIndex].colors,
+        maxCube.colors,
         colorIndex,
       );
       const split1 = this.calculateCubeProperties(colors1);
@@ -163,21 +163,21 @@ export class MedianCut {
     });
     this.replaceColors = replaceColors;
     if (update) {
-      const uint32ImageData = new Uint32Array(this.imageData.buffer);
+      const uint32ImageData = new Uint32Array(this.imageData.data.buffer);
       const colorMapping = new Uint8Array(16777216);
       cubes.forEach((cube, i) => {
         const colors = cube.colors;
         for (let j = 0; j < colors.length; j++) {
           const [r, g, b] = colors[j];
-          const key = (b * 256 + g) * 256 + r;
-          colorMapping[key] = i;
+          const rgb = (b * 256 + g) * 256 + r;
+          colorMapping[rgb] = i;
         }
       });
       this.colorMapping = colorMapping;
       for (let i = 0; i < uint32ImageData.length; i++) {
         const rgba = uint32ImageData[i];
-        const key = rgba & 0xFFFFFF;
-        const newColor = replaceColors[colorMapping[key]];
+        const rgb = rgba & 0xFFFFFF;
+        const newColor = replaceColors[colorMapping[rgb]];
         if (newColor) {
           uint32ImageData[i] = newColor | (rgba & 0xFF000000);
         }
