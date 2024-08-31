@@ -146,8 +146,8 @@ export class MedianCut {
     const { colorMapping } = this;
     const arr = new Array(cubes.length);
     for (let i = 0; i < cubes.length; i++) {
-      let totalR = 0, totalG = 0, totalB = 0, totalUses = 0;
       const colors = cubes[i].colors;
+      let totalR = 0, totalG = 0, totalB = 0, totalUses = 0;
       for (let j = 0; j < colors.length; j++) {
         const [r, g, b, uses] = colors[j];
         totalR += r * uses;
