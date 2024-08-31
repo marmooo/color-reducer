@@ -275,7 +275,7 @@ class FilterPanel extends LoadPanel {
       palette[j + 2] = (key >> 16) & 0xFF;
     }
     const mappedImageData = new Uint8Array(width * height);
-    const uint32ImageData = new Uint32Array(imageData.buffer);
+    const uint32ImageData = new Uint32Array(imageData.data.buffer);
     replaceColors.forEach((key, i) => {
       colorMapping[key] = i;
     });
@@ -527,8 +527,8 @@ class MedianCutFilter extends Filter {
         filterPanel.canvas.width,
         filterPanel.canvas.height,
       );
-      this.medianCut.imageData = imageData.data;
-      this.medianCut.apply(2 ** color, true);
+      this.medianCut.imageData = imageData;
+      this.medianCut.apply(2 ** color);
       filterPanel.canvasContext.putImageData(imageData, 0, 0);
     }
   }

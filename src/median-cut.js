@@ -1,10 +1,10 @@
 export class MedianCut {
   replaceColors;
-  colorMapping;
 
   constructor(imageData) {
     this.imageData = imageData;
     this.colors = this.getColorInfo();
+    this.colorMapping = new Uint8Array(16777216);
   }
 
   getColorInfo() {
@@ -142,45 +142,44 @@ export class MedianCut {
     return cubes;
   }
 
-  apply(colorSize, update) {
-    if (this.colors.length <= colorSize) return;
-    const initialCube = this.calculateCubeProperties(this.colors);
-    const cubes = this.splitCubesByMedian([initialCube], colorSize);
-    const replaceColors = cubes.map((cube) => {
+  getReplaceColors(cubes) {
+    const { colorMapping } = this;
+    const arr = new Array(cubes.length);
+    for (let i = 0; i < cubes.length; i++) {
       let totalR = 0, totalG = 0, totalB = 0, totalUses = 0;
-      const colors = cube.colors;
-      for (let i = 0; i < colors.length; i++) {
-        const [r, g, b, uses] = colors[i];
+      const colors = cubes[i].colors;
+      for (let j = 0; j < colors.length; j++) {
+        const [r, g, b, uses] = colors[j];
         totalR += r * uses;
         totalG += g * uses;
         totalB += b * uses;
         totalUses += uses;
+        const rgb = (b * 256 + g) * 256 + r;
+        colorMapping[rgb] = i;
       }
       const avgR = Math.round(totalR / totalUses);
       const avgG = Math.round(totalG / totalUses);
       const avgB = Math.round(totalB / totalUses);
-      return (avgB * 256 + avgG) * 256 + avgR;
-    });
+      const rgb = (avgB * 256 + avgG) * 256 + avgR;
+      arr[i] = rgb;
+    }
+    return arr;
+  }
+
+  apply(colorSize) {
+    if (this.colors.length <= colorSize) return;
+    const { colorMapping } = this;
+    const initialCube = this.calculateCubeProperties(this.colors);
+    const cubes = this.splitCubesByMedian([initialCube], colorSize);
+    const replaceColors = this.getReplaceColors(cubes);
     this.replaceColors = replaceColors;
-    if (update) {
-      const uint32ImageData = new Uint32Array(this.imageData.data.buffer);
-      const colorMapping = new Uint8Array(16777216);
-      cubes.forEach((cube, i) => {
-        const colors = cube.colors;
-        for (let j = 0; j < colors.length; j++) {
-          const [r, g, b] = colors[j];
-          const rgb = (b * 256 + g) * 256 + r;
-          colorMapping[rgb] = i;
-        }
-      });
-      this.colorMapping = colorMapping;
-      for (let i = 0; i < uint32ImageData.length; i++) {
-        const rgba = uint32ImageData[i];
-        const rgb = rgba & 0xFFFFFF;
-        const newColor = replaceColors[colorMapping[rgb]];
-        if (newColor) {
-          uint32ImageData[i] = newColor | (rgba & 0xFF000000);
-        }
+    const uint32ImageData = new Uint32Array(this.imageData.data.buffer);
+    for (let i = 0; i < uint32ImageData.length; i++) {
+      const rgba = uint32ImageData[i];
+      const rgb = rgba & 0xFFFFFF;
+      const newColor = replaceColors[colorMapping[rgb]];
+      if (newColor) {
+        uint32ImageData[i] = newColor | (rgba & 0xFF000000);
       }
     }
   }
