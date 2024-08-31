@@ -1,13 +1,55 @@
+export class Cube {
+  constructor(colors) {
+    this.colors = colors;
+    this.calculateCubeProperties();
+  }
+
+  calculateCubeProperties() {
+    const colorStats = this.getColorStats(this.colors);
+    const { rangeR, rangeG, rangeB } = colorStats;
+    this.total = colorStats.total;
+    this.type = this.getDominantColorType(rangeR, rangeG, rangeB);
+  }
+
+  getDominantColorType(rangeR, rangeG, rangeB) {
+    if (rangeR > rangeG && rangeR > rangeB) return "r";
+    if (rangeG > rangeR && rangeG > rangeB) return "g";
+    if (rangeB > rangeR && rangeB > rangeG) return "b";
+    return "g";
+  }
+
+  getColorStats(colors) {
+    let total = 0, maxR = 0, maxG = 0, maxB = 0;
+    let minR = 255, minG = 255, minB = 255;
+    for (let i = 0; i < colors.length; i++) {
+      const [r, g, b, uses] = colors[i];
+      maxR = Math.max(maxR, r);
+      maxG = Math.max(maxG, g);
+      maxB = Math.max(maxB, b);
+      minR = Math.min(minR, r);
+      minG = Math.min(minG, g);
+      minB = Math.min(minB, b);
+      total += uses;
+    }
+    return {
+      total,
+      rangeR: (maxR - minR),
+      rangeG: (maxG - minG),
+      rangeB: (maxB - minB),
+    };
+  }
+}
+
 export class MedianCut {
   replaceColors;
 
   constructor(imageData) {
     this.imageData = imageData;
-    this.colors = this.getColorInfo();
+    this.colors = this.getColors();
     this.colorMapping = new Uint8Array(16777216);
   }
 
-  getColorInfo() {
+  getColors() {
     const { imageData } = this;
     const uint32ImageData = new Uint32Array(imageData.data.buffer);
     const colorCount = new Uint32Array(16777216);
@@ -27,51 +69,6 @@ export class MedianCut {
       }
     }
     return colors;
-  }
-
-  calculateCubeProperties(colors) {
-    const colorStats = this.getColorStats(colors);
-    const dominantColorType = this.getDominantColorType(colorStats);
-    return {
-      colors,
-      total: colorStats.totalUsage,
-      type: dominantColorType,
-    };
-  }
-
-  getColorStats(colors) {
-    let totalUsage = 0;
-    let maxR = 0, maxG = 0, maxB = 0;
-    let minR = 255, minG = 255, minB = 255;
-    for (let i = 0; i < colors.length; i++) {
-      const [r, g, b, uses] = colors[i];
-      maxR = Math.max(maxR, r);
-      maxG = Math.max(maxG, g);
-      maxB = Math.max(maxB, b);
-      minR = Math.min(minR, r);
-      minG = Math.min(minG, g);
-      minB = Math.min(minB, b);
-      totalUsage += uses;
-    }
-    return {
-      maxR,
-      maxG,
-      maxB,
-      minR,
-      minG,
-      minB,
-      totalUsage,
-      rangeR: (maxR - minR),
-      rangeG: (maxG - minG),
-      rangeB: (maxB - minB),
-    };
-  }
-
-  getDominantColorType({ rangeR, rangeG, rangeB }) {
-    if (rangeR > rangeG && rangeR > rangeB) return "r";
-    if (rangeG > rangeR && rangeG > rangeB) return "g";
-    if (rangeB > rangeR && rangeB > rangeG) return "b";
-    return "g";
   }
 
   bucketSort(colors, colorIndex) {
@@ -135,8 +132,8 @@ export class MedianCut {
         maxCube.colors,
         colorIndex,
       );
-      const split1 = this.calculateCubeProperties(colors1);
-      const split2 = this.calculateCubeProperties(colors2);
+      const split1 = new Cube(colors1);
+      const split2 = new Cube(colors2);
       cubes.splice(maxIndex, 1, split1, split2);
     }
     return cubes;
@@ -187,7 +184,7 @@ export class MedianCut {
       return;
     }
     const { colorMapping } = this;
-    const initialCube = this.calculateCubeProperties(this.colors);
+    const initialCube = new Cube(this.colors);
     const cubes = this.splitCubesByMedian([initialCube], colorSize);
     const replaceColors = this.getReplaceColors(cubes);
     this.replaceColors = replaceColors;
