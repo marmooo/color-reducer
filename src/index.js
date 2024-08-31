@@ -265,7 +265,7 @@ class FilterPanel extends LoadPanel {
   toPNG8() {
     const { width, height } = this.canvas;
     const medianCut = this.currentFilter.medianCut;
-    const { replaceColors, colorMapping, imageData } = medianCut;
+    const { replaceColors } = medianCut;
     const palette = new Uint8Array(replaceColors.length * 3);
     for (let i = 0; i < replaceColors.length; i++) {
       const key = replaceColors[i];
@@ -274,17 +274,8 @@ class FilterPanel extends LoadPanel {
       palette[j + 1] = (key >> 8) & 0xFF;
       palette[j + 2] = (key >> 16) & 0xFF;
     }
-    const mappedImageData = new Uint8Array(width * height);
-    const uint32ImageData = new Uint32Array(imageData.data.buffer);
-    replaceColors.forEach((key, i) => {
-      colorMapping[key] = i;
-    });
-    for (let i = 0; i < uint32ImageData.length; i++) {
-      const rgba = uint32ImageData[i];
-      const key = rgba & 0xFFFFFF;
-      mappedImageData[i] = colorMapping[key];
-    }
-    return encode(mappedImageData, width, height, {
+    const indexedImage = medianCut.getIndexedImage();
+    return encode(indexedImage, width, height, {
       palette,
       color: 3, // Indexed
       compression: 2, // Best

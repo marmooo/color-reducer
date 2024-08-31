@@ -166,8 +166,26 @@ export class MedianCut {
     return arr;
   }
 
+  getIndexedImage() {
+    const { imageData, replaceColors } = this;
+    const uint32ImageData = new Uint8Array(imageData.data.length);
+    const imageSize = imageData.width * imageData.height;
+    const arr = replaceColors.length <= 256
+      ? new Uint8Array(imageSize)
+      : new Uint16Array(imageSize);
+    for (let i = 0; i < imageSize; i++) {
+      const rgba = uint32ImageData[i];
+      const rgb = rgba & 0xFFFFFF;
+      arr[i] = this.colorMapping[rgb];
+    }
+    return arr;
+  }
+
   apply(colorSize) {
-    if (this.colors.length <= colorSize) return;
+    if (this.colors.length <= colorSize) {
+      this.replaceColors = this.colors;
+      return;
+    }
     const { colorMapping } = this;
     const initialCube = this.calculateCubeProperties(this.colors);
     const cubes = this.splitCubesByMedian([initialCube], colorSize);
