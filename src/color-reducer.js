@@ -5,15 +5,15 @@ class UniformQuantization {
     getReplaceColors(maxColors) {
         const cbrtColors = Math.floor(Math.cbrt(maxColors));
         const colors = new Array(cbrtColors ** 3);
-        const step = Math.ceil(256 / cbrtColors);
-        const center = Math.ceil(step / 2);
+        const step = 256 / cbrtColors;
+        const center = step / 2;
         let i = 0;
         for(let R = 0; R < cbrtColors; R++){
             for(let G = 0; G < cbrtColors; G++){
                 for(let B = 0; B < cbrtColors; B++){
-                    const r = step * R + center;
-                    const g = step * G + center;
-                    const b = step * B + center;
+                    const r = Math.round(step * R + center);
+                    const g = Math.round(step * G + center);
+                    const b = Math.round(step * B + center);
                     colors[i] = {
                         r,
                         g,
@@ -31,7 +31,7 @@ class UniformQuantization {
         const uint32ImageData = new Uint32Array(imageData.data.buffer);
         const imageSize = imageData.width * imageData.height;
         const arr = cbrtColors < 7 ? new Uint8Array(imageSize) : new Uint16Array(imageSize);
-        const step = Math.ceil(256 / cbrtColors);
+        const step = 256 / cbrtColors;
         for(let i = 0; i < imageSize; i++){
             const rgba = uint32ImageData[i];
             const B = rgba >> 24 & 0xFF;
@@ -47,15 +47,15 @@ class UniformQuantization {
     apply(maxColors) {
         const { imageData } = this;
         const cbrtColors = Math.floor(Math.cbrt(maxColors));
-        const step = Math.ceil(256 / cbrtColors);
-        const center = Math.ceil(step / 2);
+        const step = 256 / cbrtColors;
+        const center = step / 2;
         const rgba = new Uint8ClampedArray(imageData.data.buffer);
         for(let ri = 0; ri < rgba.length; ri += 4){
             const gi = ri + 1;
             const bi = ri + 2;
-            rgba[ri] = Math.floor(rgba[ri] / step) * step + center;
-            rgba[gi] = Math.floor(rgba[gi] / step) * step + center;
-            rgba[bi] = Math.floor(rgba[bi] / step) * step + center;
+            rgba[ri] = Math.round(Math.floor(rgba[ri] / step) * step + center);
+            rgba[gi] = Math.round(Math.floor(rgba[gi] / step) * step + center);
+            rgba[bi] = Math.round(Math.floor(rgba[bi] / step) * step + center);
         }
     }
 }
