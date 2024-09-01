@@ -267,8 +267,8 @@ class FilterPanel extends LoadPanel {
 
   toPNG8() {
     const { width, height } = this.canvas;
-    const medianCut = this.currentFilter.medianCut;
-    const { replaceColors } = medianCut;
+    const { quantizer } = this.currentFilter;
+    const { replaceColors } = quantizer;
     const palette = new Uint8Array(replaceColors.length * 3);
     for (let i = 0; i < replaceColors.length; i++) {
       const key = replaceColors[i];
@@ -277,7 +277,7 @@ class FilterPanel extends LoadPanel {
       palette[j + 1] = (key >> 8) & 0xFF;
       palette[j + 2] = (key >> 16) & 0xFF;
     }
-    const indexedImage = medianCut.getIndexedImage();
+    const indexedImage = quantizer.getIndexedImage();
     return encode(indexedImage, width, height, {
       palette,
       color: 3, // Indexed
@@ -297,9 +297,9 @@ class FilterPanel extends LoadPanel {
     const typeSelect = this.panel.querySelector(".typeSelect");
     const type = typeSelect.options[typeSelect.selectedIndex].value;
     const quality = Number(this.panel.querySelector(".quality").value);
-    if (this.currentFilter instanceof MedianCutFilter) {
+    if (this.currentFilter instanceof UniformQuantizationFilter) {
       if (type == "image/png") {
-        const png = this.toPNG8();
+        const png = this.toPNG();
         const blob = new Blob([png.buffer]);
         const name = "reduced.png";
         const file = new File([blob], name, { type });
@@ -309,7 +309,7 @@ class FilterPanel extends LoadPanel {
       }
     } else {
       if (type == "image/png") {
-        const png = this.toPNG();
+        const png = this.toPNG8();
         const blob = new Blob([png.buffer]);
         const name = "reduced.png";
         const file = new File([blob], name, { type });
@@ -502,7 +502,7 @@ class MedianCutFilter extends Filter {
       filterPanel.canvas.height,
     );
     this.filterPanel = filterPanel;
-    this.medianCut = new MedianCut(imageData);
+    this.quantizer = new MedianCut(imageData);
   }
 
   apply(color) {
@@ -521,8 +521,8 @@ class MedianCutFilter extends Filter {
         filterPanel.canvas.width,
         filterPanel.canvas.height,
       );
-      this.medianCut.imageData = imageData;
-      this.medianCut.apply(2 ** color);
+      this.quantizer.imageData = imageData;
+      this.quantizer.apply(2 ** color);
       filterPanel.canvasContext.putImageData(imageData, 0, 0);
     }
   }
@@ -544,7 +544,7 @@ class OctreeQuantizationFilter extends Filter {
       filterPanel.canvas.height,
     );
     this.filterPanel = filterPanel;
-    this.octreeQuantization = new OctreeQuantization(imageData);
+    this.quantizer = new OctreeQuantization(imageData);
   }
 
   apply(color) {
@@ -563,8 +563,8 @@ class OctreeQuantizationFilter extends Filter {
         filterPanel.canvas.width,
         filterPanel.canvas.height,
       );
-      this.octreeQuantization.imageData = imageData;
-      this.octreeQuantization.apply(2 ** color);
+      this.quantizer.imageData = imageData;
+      this.quantizer.apply(2 ** color);
       filterPanel.canvasContext.putImageData(imageData, 0, 0);
     }
   }
