@@ -42,11 +42,11 @@ export class Cube {
 
 export class MedianCut {
   replaceColors;
+  colorMapping;
 
   constructor(imageData) {
     this.imageData = imageData;
     this.colors = this.getColors();
-    this.colorMapping = new Uint8Array(16777216);
   }
 
   getColors() {
@@ -112,8 +112,8 @@ export class MedianCut {
     return this.splitBuckets(buckets, half);
   }
 
-  splitCubesByMedian(cubes, colorSize) {
-    while (cubes.length < colorSize) {
+  splitCubesByMedian(cubes, numColors) {
+    while (cubes.length < numColors) {
       let maxIndex = 0;
       let maxTotal = cubes[0].total;
       for (let i = 1; i < cubes.length; i++) {
@@ -164,7 +164,7 @@ export class MedianCut {
   }
 
   getIndexedImage() {
-    const { imageData, replaceColors } = this;
+    const { imageData, replaceColors, colorMapping } = this;
     const uint32ImageData = new Uint8Array(imageData.data.length);
     const imageSize = imageData.width * imageData.height;
     const arr = replaceColors.length <= 256
@@ -173,19 +173,29 @@ export class MedianCut {
     for (let i = 0; i < imageSize; i++) {
       const rgba = uint32ImageData[i];
       const rgb = rgba & 0xFFFFFF;
-      arr[i] = this.colorMapping[rgb];
+      arr[i] = colorMapping[rgb];
     }
     return arr;
   }
 
-  apply(colorSize) {
-    if (this.colors.length <= colorSize) {
-      this.replaceColors = this.colors;
-      return;
-    }
+  initColorMapping(numColors) {
     const { colorMapping } = this;
+    if (numColors <= 256) {
+      if (!(colorMapping instanceof Uint8Array)) {
+        this.colorMapping = new Uint8Array(16777216);
+      }
+    } else {
+      if (!(colorMapping instanceof Uint16Array)) {
+        this.colorMapping = new Uint16Array(16777216);
+      }
+    }
+    return this.colorMapping;
+  }
+
+  apply(numColors) {
+    const colorMapping = this.initColorMapping(numColors);
     const initialCube = new Cube(this.colors);
-    const cubes = this.splitCubesByMedian([initialCube], colorSize);
+    const cubes = this.splitCubesByMedian([initialCube], numColors);
     const replaceColors = this.getReplaceColors(cubes);
     this.replaceColors = replaceColors;
     const uint32ImageData = new Uint32Array(this.imageData.data.buffer);
