@@ -157,6 +157,9 @@ class LoadPanel extends Panel {
     const img = event.currentTarget;
     filterPanel.setCanvas(img);
     const filter = new filterPanel.filters.uniformQuantization(filterPanel);
+    const select = filterPanel.panel.querySelector(".filterSelect");
+    select.options[0].selected = true;
+    select.dispatchEvent(new Event("change"));
     filterPanel.currentFilter = filter;
     filter.apply(...filter.defaultOptions);
   };
