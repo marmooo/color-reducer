@@ -1,6 +1,10 @@
 import { Tooltip } from "https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/+esm";
 import imageCompareViewer from "https://cdn.jsdelivr.net/npm/image-compare-viewer@1.6.2/+esm";
-import { UniformQuantization, MedianCut, OctreeQuantization } from "./color-reducer.js";
+import {
+  MedianCut,
+  OctreeQuantization,
+  UniformQuantization,
+} from "./color-reducer.js";
 import { encode } from "./pngs.js";
 
 function loadConfig() {
@@ -463,17 +467,16 @@ class UniformQuantizationFilter extends Filter {
     } else {
       inputs.color.value = color;
     }
-    if (color === 8) {
+    if (color === 16) {
       filterPanel.canvasContext.drawImage(filterPanel.offscreenCanvas, 0, 0);
     } else {
       const src = cv.imread(filterPanel.offscreenCanvas);
 
-      const step = 256 / 2 ** color;
+      const step = 256 / color;
+      const center = step / 2;
       const colorArray = new Array(256);
       for (let i = 0; i < colorArray.length; i++) {
-        const index = Math.floor(i / step);
-        const median = Math.floor((index + 0.5) * step);
-        colorArray[i] = median;
+        colorArray[i] = Math.round(Math.floor(i / step) * step + center);
       }
       const lut = cv.matFromArray(1, 256, cv.CV_8U, colorArray);
       cv.LUT(src, lut, src);
