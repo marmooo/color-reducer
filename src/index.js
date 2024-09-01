@@ -1,6 +1,6 @@
 import { Tooltip } from "https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/+esm";
 import imageCompareViewer from "https://cdn.jsdelivr.net/npm/image-compare-viewer@1.6.2/+esm";
-import { MedianCut } from "./median-cut.js";
+import { UniformQuantization, MedianCut, OctreeQuantization } from "./color-reducer.js";
 import { encode } from "./pngs.js";
 
 function loadConfig() {
@@ -333,6 +333,7 @@ class FilterPanel extends LoadPanel {
   addFilters() {
     this.filtering = false;
     this.filters.uniformQuantization = UniformQuantizationFilter;
+    this.filters.octreeQuantization = OctreeQuantizationFilter;
     this.filters.medianCut = MedianCutFilter;
   }
 
@@ -520,6 +521,48 @@ class MedianCutFilter extends Filter {
       );
       this.medianCut.imageData = imageData;
       this.medianCut.apply(2 ** color);
+      filterPanel.canvasContext.putImageData(imageData, 0, 0);
+    }
+  }
+}
+
+class OctreeQuantizationFilter extends Filter {
+  defaultOptions = [6];
+
+  constructor(filterPanel) {
+    const root = filterPanel.panel.querySelector(".octreeQuantization");
+    const inputs = {
+      color: root.querySelector(".color"),
+    };
+    super(root, inputs);
+    const imageData = filterPanel.offscreenCanvasContext.getImageData(
+      0,
+      0,
+      filterPanel.canvas.width,
+      filterPanel.canvas.height,
+    );
+    this.filterPanel = filterPanel;
+    this.octreeQuantization = new OctreeQuantization(imageData);
+  }
+
+  apply(color) {
+    const { inputs, filterPanel } = this;
+    if (color === undefined) {
+      color = Number(inputs.color.value);
+    } else {
+      inputs.color.value = color;
+    }
+    if (color === 9) {
+      filterPanel.canvasContext.drawImage(filterPanel.offscreenCanvas, 0, 0);
+    } else {
+      const imageData = filterPanel.offscreenCanvasContext.getImageData(
+        0,
+        0,
+        filterPanel.canvas.width,
+        filterPanel.canvas.height,
+      );
+      this.octreeQuantization.imageData = imageData;
+      this.octreeQuantization.apply(2 ** color);
       filterPanel.canvasContext.putImageData(imageData, 0, 0);
     }
   }
