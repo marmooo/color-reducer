@@ -15,7 +15,7 @@ import {
   UniformQuantization,
 } from "npm:color-reducer";
 
-const imageData = new ImageData(bitmap, 64, 64);
+const imageData = new ImageData(dataArray, 64, 64);
 
 new MedianCut(imageData).apply(256);
 new UniformQuantization(imageData).apply(256);
