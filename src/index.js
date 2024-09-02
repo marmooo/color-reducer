@@ -515,15 +515,8 @@ class MedianCutFilter extends Filter {
     if (color === 9) {
       filterPanel.canvasContext.drawImage(filterPanel.offscreenCanvas, 0, 0);
     } else {
-      const imageData = filterPanel.offscreenCanvasContext.getImageData(
-        0,
-        0,
-        filterPanel.canvas.width,
-        filterPanel.canvas.height,
-      );
-      this.quantizer.imageData = imageData;
-      this.quantizer.apply(2 ** color);
-      filterPanel.canvasContext.putImageData(imageData, 0, 0);
+      const newImageData = this.quantizer.apply(2 ** color);
+      filterPanel.canvasContext.putImageData(newImageData, 0, 0);
     }
   }
 }
@@ -557,15 +550,8 @@ class OctreeQuantizationFilter extends Filter {
     if (color === 9) {
       filterPanel.canvasContext.drawImage(filterPanel.offscreenCanvas, 0, 0);
     } else {
-      const imageData = filterPanel.offscreenCanvasContext.getImageData(
-        0,
-        0,
-        filterPanel.canvas.width,
-        filterPanel.canvas.height,
-      );
-      this.quantizer.imageData = imageData;
-      this.quantizer.apply(2 ** color);
-      filterPanel.canvasContext.putImageData(imageData, 0, 0);
+      const newImageData = this.quantizer.apply(2 ** color);
+      filterPanel.canvasContext.putImageData(newImageData, 0, 0);
     }
   }
 }

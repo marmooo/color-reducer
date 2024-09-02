@@ -28,12 +28,12 @@ class UniformQuantization {
     getIndexedImage(maxColors) {
         const { imageData } = this;
         const cbrtColors = Math.floor(Math.cbrt(maxColors));
-        const uint32ImageData = new Uint32Array(imageData.data.buffer);
+        const uint32Data = new Uint32Array(imageData.data.buffer);
         const imageSize = imageData.width * imageData.height;
         const arr = cbrtColors < 7 ? new Uint8Array(imageSize) : new Uint16Array(imageSize);
         const step = 256 / cbrtColors;
         for(let i = 0; i < imageSize; i++){
-            const rgba = uint32ImageData[i];
+            const rgba = uint32Data[i];
             const B = rgba >> 24 & 0xFF;
             const G = rgba >> 16 & 0xFF;
             const R = rgba >> 8 & 0xFF;
@@ -49,14 +49,17 @@ class UniformQuantization {
         const cbrtColors = Math.floor(Math.cbrt(maxColors));
         const step = 256 / cbrtColors;
         const center = step / 2;
-        const rgba = new Uint8ClampedArray(imageData.data.buffer);
-        for(let ri = 0; ri < rgba.length; ri += 4){
+        const uint32Data = new Uint8ClampedArray(imageData.data.buffer);
+        const newUint32Data = new Uint32Array(uint32Data.length);
+        for(let ri = 0; ri < uint32Data.length; ri += 4){
             const gi = ri + 1;
             const bi = ri + 2;
-            rgba[ri] = Math.round(Math.floor(rgba[ri] / step) * step + center);
-            rgba[gi] = Math.round(Math.floor(rgba[gi] / step) * step + center);
-            rgba[bi] = Math.round(Math.floor(rgba[bi] / step) * step + center);
+            newUint32Data[ri] = Math.round(Math.floor(uint32Data[ri] / step) * step + center);
+            newUint32Data[gi] = Math.round(Math.floor(uint32Data[gi] / step) * step + center);
+            newUint32Data[bi] = Math.round(Math.floor(uint32Data[bi] / step) * step + center);
         }
+        const data = new Uint8ClampedArray(newUint32Data.buffer);
+        return new ImageData(data, imageData.width, imageData.height);
     }
 }
 export { UniformQuantization as UniformQuantization };
@@ -81,10 +84,10 @@ class OctreeQuantization {
     }
     getInitialCubes() {
         const { imageData } = this;
-        const uint32ImageData = new Uint32Array(imageData.data.buffer);
+        const uint32Data = new Uint32Array(imageData.data.buffer);
         const colorCount = new Uint32Array(16777216);
-        for(let i = 0; i < uint32ImageData.length; i++){
-            const rgba = uint32ImageData[i];
+        for(let i = 0; i < uint32Data.length; i++){
+            const rgba = uint32Data[i];
             const rgb = rgba & 0xFFFFFF;
             colorCount[rgb]++;
         }
@@ -173,11 +176,11 @@ class OctreeQuantization {
     }
     getIndexedImage() {
         const { imageData, replaceColors } = this;
-        const uint32ImageData = new Uint8Array(this.imageData.data.length);
+        const uint32Data = new Uint8Array(this.imageData.data.length);
         const imageSize = imageData.width * imageData.height;
         const arr = replaceColors.length <= 256 ? new Uint8Array(imageSize) : new Uint16Array(imageSize);
         for(let i = 0; i < imageSize; i++){
-            const rgba = uint32ImageData[i];
+            const rgba = uint32Data[i];
             const rgb = rgba & 0xFFFFFF;
             arr[i] = this.colorMapping[rgb];
         }
@@ -197,20 +200,24 @@ class OctreeQuantization {
         return this.colorMapping;
     }
     apply(maxColors) {
+        const { imageData } = this;
         const cubes = this.getInitialCubes();
         this.splitCubes(cubes, maxColors);
         const colorMapping = this.initColorMapping(cubes.length);
         const replaceColors = this.getReplaceColors(cubes);
         this.replaceColors = replaceColors;
-        const uint32ImageData = new Uint32Array(this.imageData.data.buffer);
-        for(let i = 0; i < uint32ImageData.length; i++){
-            const rgba = uint32ImageData[i];
+        const uint32Data = new Uint32Array(imageData.data.buffer);
+        const newUint32Data = new Uint32Array(uint32Data.length);
+        for(let i = 0; i < uint32Data.length; i++){
+            const rgba = uint32Data[i];
             const rgb = rgba & 0xFFFFFF;
             const newColor = replaceColors[colorMapping[rgb]];
             if (newColor) {
-                uint32ImageData[i] = newColor | rgba & 0xFF000000;
+                newUint32Data[i] = newColor | rgba & 0xFF000000;
             }
         }
+        const data = new Uint8ClampedArray(newUint32Data.buffer);
+        return new ImageData(data, imageData.width, imageData.height);
     }
 }
 export { OctreeNode as OctreeNode };
@@ -262,10 +269,10 @@ class MedianCut {
     }
     getColors() {
         const { imageData } = this;
-        const uint32ImageData = new Uint32Array(imageData.data.buffer);
+        const uint32Data = new Uint32Array(imageData.data.buffer);
         const colorCount = new Uint32Array(16777216);
-        for(let i = 0; i < uint32ImageData.length; i++){
-            const rgba = uint32ImageData[i];
+        for(let i = 0; i < uint32Data.length; i++){
+            const rgba = uint32Data[i];
             const rgb = rgba & 0xFFFFFF;
             colorCount[rgb]++;
         }
@@ -375,11 +382,11 @@ class MedianCut {
     }
     getIndexedImage() {
         const { imageData, replaceColors, colorMapping } = this;
-        const uint32ImageData = new Uint8Array(imageData.data.length);
+        const uint32Data = new Uint8Array(imageData.data.length);
         const imageSize = imageData.width * imageData.height;
         const arr = replaceColors.length <= 256 ? new Uint8Array(imageSize) : new Uint16Array(imageSize);
         for(let i = 0; i < imageSize; i++){
-            const rgba = uint32ImageData[i];
+            const rgba = uint32Data[i];
             const rgb = rgba & 0xFFFFFF;
             arr[i] = colorMapping[rgb];
         }
@@ -399,22 +406,24 @@ class MedianCut {
         return this.colorMapping;
     }
     apply(numColors) {
+        const { imageData, colors } = this;
         const colorMapping = this.initColorMapping(numColors);
-        const initialCube = new Cube(this.colors);
+        const initialCube = new Cube(colors);
         const cubes = this.splitCubesByMedian([
             initialCube
         ], numColors);
         const replaceColors = this.getReplaceColors(cubes);
         this.replaceColors = replaceColors;
-        const uint32ImageData = new Uint32Array(this.imageData.data.buffer);
-        for(let i = 0; i < uint32ImageData.length; i++){
-            const rgba = uint32ImageData[i];
+        const uint32Data = new Uint32Array(imageData.data.buffer);
+        const newUint32Data = new Uint32Array(uint32Data.length);
+        for(let i = 0; i < uint32Data.length; i++){
+            const rgba = uint32Data[i];
             const rgb = rgba & 0xFFFFFF;
             const newColor = replaceColors[colorMapping[rgb]];
-            if (newColor) {
-                uint32ImageData[i] = newColor | rgba & 0xFF000000;
-            }
+            newUint32Data[i] = newColor | rgba & 0xFF000000;
         }
+        const data = new Uint8ClampedArray(newUint32Data.buffer);
+        return new ImageData(data, imageData.width, imageData.height);
     }
 }
 export { Cube as Cube };
