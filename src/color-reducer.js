@@ -212,9 +212,7 @@ class OctreeQuantization {
             const rgba = uint32Data[i];
             const rgb = rgba & 0xFFFFFF;
             const newColor = replaceColors[colorMapping[rgb]];
-            if (newColor) {
-                newUint32Data[i] = newColor | rgba & 0xFF000000;
-            }
+            newUint32Data[i] = newColor | rgba & 0xFF000000;
         }
         const data = new Uint8ClampedArray(newUint32Data.buffer);
         return new ImageData(data, imageData.width, imageData.height);
