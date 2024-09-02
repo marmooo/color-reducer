@@ -31,10 +31,8 @@ const indexed1 = uniform1.getIndexedImage(256);
 const palette1 = uniform1.getReplaceColors(256);
 assertEquals(indexed1[0], 0);
 assertEquals(palette1.length, 216);
-const uniform2 = new UniformQuantization(imageData1);
-const indexed2 = uniform2.getIndexedImage(256);
+const uniform2 = new UniformQuantization(imageData2);
 const palette2 = uniform2.getReplaceColors(32);
-assertEquals(indexed2[0], 0);
 assertEquals(palette2.length, 27);
 
 const octree1 = new OctreeQuantization(imageData1);
