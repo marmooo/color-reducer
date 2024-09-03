@@ -44,21 +44,21 @@ for (const colors of [16, 64, 256]) {
     const imageData = getImageData(image);
     b.start();
     const uniform = new UniformQuantization(imageData);
-    uniform.apply(colors, true);
+    uniform.apply(colors);
     b.end();
   });
   Deno.bench(`Octree quantization (${colors}colors)`, (b) => {
     const imageData = getImageData(image);
     b.start();
     const octree = new OctreeQuantization(imageData);
-    octree.apply(colors, true);
+    octree.apply(colors);
     b.end();
   });
   Deno.bench(`Median cut (${colors}colors)`, (b) => {
     const imageData = getImageData(image);
     b.start();
     const medianCut = new MedianCut(imageData);
-    medianCut.apply(colors, true);
+    medianCut.apply(colors);
     b.end();
   });
 }
