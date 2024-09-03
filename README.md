@@ -13,7 +13,7 @@ import {
   MedianCut,
   OctreeQuantization,
   UniformQuantization,
-} from "npm:color-reducer";
+} from "npm:@marmooo/color-reducer";
 
 const imageData = new ImageData(dataArray, 64, 64);
 
