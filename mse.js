@@ -55,22 +55,22 @@ for (const colors of [16, 64, 256]) {
   measure(`Uniform quantization (${colors}colors)`, (name) => {
     const imageData = getImageData(image);
     const uniform = new UniformQuantization(imageData);
-    uniform.apply(colors);
-    const mse = calcMSE(image.data, imageData.data);
+    const newImageData = uniform.apply(colors);
+    const mse = calcMSE(newImageData.data, imageData.data);
     console.log(name, mse);
   });
   measure(`Octree quantization (${colors}colors)`, (name) => {
     const imageData = getImageData(image);
     const octree = new OctreeQuantization(imageData);
-    octree.apply(colors);
-    const mse = calcMSE(image.data, imageData.data);
+    const newImageData = octree.apply(colors);
+    const mse = calcMSE(newImageData.data, imageData.data);
     console.log(name, mse);
   });
   measure(`Median cut (${colors}colors)`, (name) => {
     const imageData = getImageData(image);
     const medianCut = new MedianCut(imageData);
-    medianCut.apply(colors, true);
-    const mse = calcMSE(image.data, imageData.data);
+    const newImageData = medianCut.apply(colors, true);
+    const mse = calcMSE(newImageData.data, imageData.data);
     console.log(name, mse);
   });
 }
