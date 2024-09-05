@@ -49,17 +49,18 @@ class UniformQuantization {
         const cbrtColors = Math.floor(Math.cbrt(maxColors));
         const step = 256 / cbrtColors;
         const center = step / 2;
-        const uint32Data = new Uint8ClampedArray(imageData.data.buffer);
-        const newUint32Data = new Uint32Array(uint32Data.length);
-        for(let ri = 0; ri < uint32Data.length; ri += 4){
+        const data = imageData.data;
+        const newData = new Uint8ClampedArray(data.length);
+        for(let ri = 0; ri < data.length; ri += 4){
             const gi = ri + 1;
             const bi = ri + 2;
-            newUint32Data[ri] = Math.round(Math.floor(uint32Data[ri] / step) * step + center);
-            newUint32Data[gi] = Math.round(Math.floor(uint32Data[gi] / step) * step + center);
-            newUint32Data[bi] = Math.round(Math.floor(uint32Data[bi] / step) * step + center);
+            const ai = ri + 3;
+            newData[ri] = Math.round(Math.floor(data[ri] / step) * step + center);
+            newData[gi] = Math.round(Math.floor(data[gi] / step) * step + center);
+            newData[bi] = Math.round(Math.floor(data[bi] / step) * step + center);
+            newData[ai] = data[ai];
         }
-        const data = new Uint8ClampedArray(newUint32Data.buffer);
-        return new ImageData(data, imageData.width, imageData.height);
+        return new ImageData(newData, imageData.width, imageData.height);
     }
 }
 export { UniformQuantization as UniformQuantization };
@@ -221,8 +222,9 @@ class OctreeQuantization {
 export { OctreeNode as OctreeNode };
 export { OctreeQuantization as OctreeQuantization };
 class Cube {
-    constructor(colors){
+    constructor(colors, sortIndex){
         this.colors = colors;
+        this.sortIndex = sortIndex;
         this.calculateCubeProperties();
     }
     calculateCubeProperties() {
@@ -258,12 +260,26 @@ class Cube {
         };
     }
 }
+class SplitLog {
+    constructor(cubeIndex, sortIndex, type){
+        this.cubeIndex = cubeIndex;
+        this.sortIndex = sortIndex;
+        this.type = type;
+    }
+}
 class MedianCut {
     replaceColors;
     colorMapping;
-    constructor(imageData){
+    splitLogs = [];
+    constructor(imageData, options = {
+        cache: true
+    }){
         this.imageData = imageData;
+        this.options = options;
         this.colors = this.getColors();
+        this.cubes = [
+            new Cube(this.colors, -1)
+        ];
     }
     getColors() {
         const { imageData } = this;
@@ -291,14 +307,27 @@ class MedianCut {
         }
         return colors;
     }
-    bucketSort(colors, colorIndex) {
+    bucketSort(colors, sortIndex) {
+        const { options } = this;
         const buckets = new Array(256);
         for(let i = 0; i < 256; i++){
             buckets[i] = [];
         }
         for(let i = 0; i < colors.length; i++){
             const color = colors[i];
-            buckets[color[colorIndex]].push(color);
+            buckets[color[sortIndex]].push(color);
+        }
+        if (options.cache) {
+            const secondSortIndex = (sortIndex + 1) % 3;
+            const thirdSortIndex = (sortIndex + 2) % 3;
+            for(let i = 0; i < 256; i++){
+                buckets[i].sort((a, b)=>{
+                    if (a[secondSortIndex] !== b[secondSortIndex]) {
+                        return a[secondSortIndex] - b[secondSortIndex];
+                    }
+                    return a[thirdSortIndex] - b[thirdSortIndex];
+                });
+            }
         }
         return buckets;
     }
@@ -327,32 +356,56 @@ class MedianCut {
             split2
         ];
     }
-    sortAndSplit(colors, colorIndex) {
-        const buckets = this.bucketSort(colors, colorIndex);
+    sortAndSplit(colors, sortIndex) {
+        const buckets = this.bucketSort(colors, sortIndex);
         const half = Math.floor((colors.length + 1) / 2);
         return this.splitBuckets(buckets, half);
     }
     splitCubesByMedian(cubes, numColors) {
+        const { splitLogs } = this;
         while(cubes.length < numColors){
             let maxIndex = 0;
             let maxTotal = cubes[0].total;
             for(let i = 1; i < cubes.length; i++){
                 const cube = cubes[i];
                 const total = cube.total;
-                if (maxTotal < total) {
+                if (maxTotal < total && cube.colors.length !== 1) {
                     maxIndex = i;
                     maxTotal = total;
                 }
             }
             const maxCube = cubes[maxIndex];
             if (maxCube.total === 1) break;
-            if (maxCube.colors.length === 1) break;
-            const colorIndex = "rgb".indexOf(maxCube.type);
-            const [colors1, colors2] = this.sortAndSplit(maxCube.colors, colorIndex);
-            const split1 = new Cube(colors1);
-            const split2 = new Cube(colors2);
+            const sortIndex = "rgb".indexOf(maxCube.type);
+            const [colors1, colors2] = this.sortAndSplit(maxCube.colors, sortIndex);
+            const split1 = new Cube(colors1, sortIndex);
+            const split2 = new Cube(colors2, sortIndex);
             cubes.splice(maxIndex, 1, split1, split2);
+            const splitLog = new SplitLog(maxIndex, maxCube.sortIndex, maxCube.type);
+            splitLogs.push(splitLog);
         }
+        return cubes;
+    }
+    mergeCubesByMedian(cubes, numColors) {
+        const { splitLogs } = this;
+        let i = splitLogs.length - 1;
+        while(numColors < cubes.length){
+            const { cubeIndex, sortIndex, type } = splitLogs[i];
+            const newCube = cubes[cubeIndex];
+            const oldCube = cubes[cubeIndex + 1];
+            newCube.colors.push(...oldCube.colors);
+            const buckets = this.bucketSort(newCube.colors, sortIndex);
+            const newColors = [];
+            for(let j = 0; j < buckets.length; j++){
+                newColors.push(...buckets[j]);
+            }
+            newCube.colors = newColors;
+            newCube.total += oldCube.total;
+            newCube.type = type;
+            cubes.splice(cubeIndex, 2, newCube);
+            i--;
+        }
+        this.splitLogs = splitLogs.slice(0, numColors - 1);
         return cubes;
     }
     getReplaceColors(cubes) {
@@ -404,12 +457,13 @@ class MedianCut {
         return this.colorMapping;
     }
     apply(numColors) {
-        const { imageData, colors } = this;
+        const { imageData, cubes, options } = this;
         const colorMapping = this.initColorMapping(numColors);
-        const initialCube = new Cube(colors);
-        const cubes = this.splitCubesByMedian([
-            initialCube
-        ], numColors);
+        if (options.cache && numColors <= cubes.length) {
+            this.cubes = this.mergeCubesByMedian(cubes, numColors);
+        } else {
+            this.cubes = this.splitCubesByMedian(cubes, numColors);
+        }
         const replaceColors = this.getReplaceColors(cubes);
         this.replaceColors = replaceColors;
         const uint32Data = new Uint32Array(imageData.data.buffer);
@@ -425,5 +479,6 @@ class MedianCut {
     }
 }
 export { Cube as Cube };
+export { SplitLog as SplitLog };
 export { MedianCut as MedianCut };
 
