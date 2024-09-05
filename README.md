@@ -18,8 +18,8 @@ import {
 const imageData = new ImageData(dataArray, 64, 64);
 
 new MedianCut(imageData).apply(256);
-new UniformQuantization(imageData).apply(256);
 new OctreeQuantization(imageData).apply(256);
+new UniformQuantization(imageData).apply(256);
 ```
 
 ## Test
