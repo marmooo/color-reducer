@@ -71,11 +71,19 @@ class OctreeNode {
         this.level = level;
     }
 }
+class OctreeLog {
+    constructor(cubeIndex, numLeaves){
+        this.cubeIndex = cubeIndex;
+        this.numLeaves = numLeaves;
+    }
+}
 class OctreeQuantization {
     replaceColors;
     colorMapping;
+    splitLogs = [];
     constructor(imageData){
         this.imageData = imageData;
+        this.cubes = this.initCubes();
     }
     getKey(rgb, level) {
         const r = (rgb >> 16 + level & 1) << 2;
@@ -83,7 +91,7 @@ class OctreeQuantization {
         const b = rgb >> level & 1;
         return r | g | b;
     }
-    getInitialCubes() {
+    initCubes() {
         const { imageData } = this;
         const uint32Data = new Uint32Array(imageData.data.buffer);
         const colorCount = new Uint32Array(16777216);
@@ -109,9 +117,14 @@ class OctreeQuantization {
                 cube.total += uses;
             }
         }
-        return cubes.filter((cube)=>cube.total > 0);
+        const newCubes = cubes.filter((cube)=>cube.total > 0);
+        this.splitLogs = [
+            new OctreeLog(0, newCubes.length)
+        ];
+        return newCubes;
     }
     splitCubes(cubes, maxColors) {
+        const { splitLogs } = this;
         while(cubes.length < maxColors){
             let maxIndex = 0;
             let maxTotal = cubes[0].total;
@@ -144,10 +157,30 @@ class OctreeQuantization {
             newCubes = newCubes.filter((cube)=>cube.total > 0);
             if (cubes.length + newCubes.length - 1 <= maxColors) {
                 cubes.splice(maxIndex, 1, ...newCubes);
+                const splitLog = new OctreeLog(maxIndex, newCubes.length);
+                splitLogs.push(splitLog);
             } else {
                 break;
             }
         }
+        return cubes;
+    }
+    mergeCubes(cubes, maxColors) {
+        const { splitLogs } = this;
+        let i = splitLogs.length - 1;
+        while(maxColors < cubes.length){
+            const { cubeIndex, numLeaves } = splitLogs[i];
+            const newCube = cubes[cubeIndex];
+            for(let j = 1; j < numLeaves; j++){
+                const oldCube = cubes[cubeIndex + j];
+                newCube.colors.push(...oldCube.colors);
+                newCube.total += oldCube.total;
+            }
+            newCube.level++;
+            cubes.splice(cubeIndex, numLeaves, newCube);
+            i--;
+        }
+        this.splitLogs = splitLogs.slice(0, i + 1);
         return cubes;
     }
     getReplaceColors(cubes) {
@@ -187,9 +220,9 @@ class OctreeQuantization {
         }
         return arr;
     }
-    initColorMapping(numColors) {
+    initColorMapping(maxColors) {
         const { colorMapping } = this;
-        if (numColors <= 256) {
+        if (maxColors <= 256) {
             if (!(colorMapping instanceof Uint8Array)) {
                 this.colorMapping = new Uint8Array(16777216);
             }
@@ -202,8 +235,9 @@ class OctreeQuantization {
     }
     apply(maxColors) {
         const { imageData } = this;
-        const cubes = this.getInitialCubes();
-        this.splitCubes(cubes, maxColors);
+        let { cubes } = this;
+        cubes = maxColors < cubes.length ? this.mergeCubes(cubes, maxColors) : this.splitCubes(cubes, maxColors);
+        this.cubes = cubes;
         const colorMapping = this.initColorMapping(cubes.length);
         const replaceColors = this.getReplaceColors(cubes);
         this.replaceColors = replaceColors;
@@ -220,6 +254,7 @@ class OctreeQuantization {
     }
 }
 export { OctreeNode as OctreeNode };
+export { OctreeLog as OctreeLog };
 export { OctreeQuantization as OctreeQuantization };
 class Cube {
     constructor(colors, sortIndex){
@@ -260,7 +295,7 @@ class Cube {
         };
     }
 }
-class SplitLog {
+class MedianCutLog {
     constructor(cubeIndex, sortIndex, type){
         this.cubeIndex = cubeIndex;
         this.sortIndex = sortIndex;
@@ -277,7 +312,10 @@ class MedianCut {
         this.imageData = imageData;
         this.options = options;
         this.colors = this.getColors();
-        this.cubes = [
+        this.cubes = this.initCubes();
+    }
+    initCubes() {
+        return [
             new Cube(this.colors, -1)
         ];
     }
@@ -381,7 +419,7 @@ class MedianCut {
             const split1 = new Cube(colors1, sortIndex);
             const split2 = new Cube(colors2, sortIndex);
             cubes.splice(maxIndex, 1, split1, split2);
-            const splitLog = new SplitLog(maxIndex, maxCube.sortIndex, maxCube.type);
+            const splitLog = new MedianCutLog(maxIndex, maxCube.sortIndex, maxCube.type);
             splitLogs.push(splitLog);
         }
         return cubes;
@@ -405,7 +443,7 @@ class MedianCut {
             cubes.splice(cubeIndex, 2, newCube);
             i--;
         }
-        this.splitLogs = splitLogs.slice(0, numColors - 1);
+        this.splitLogs = splitLogs.slice(0, cubes.length - 1);
         return cubes;
     }
     getReplaceColors(cubes) {
@@ -457,13 +495,16 @@ class MedianCut {
         return this.colorMapping;
     }
     apply(numColors) {
-        const { imageData, cubes, options } = this;
-        const colorMapping = this.initColorMapping(numColors);
-        if (options.cache && numColors <= cubes.length) {
-            this.cubes = this.mergeCubesByMedian(cubes, numColors);
+        const { imageData, options } = this;
+        let { cubes } = this;
+        if (options.cache) {
+            cubes = numColors < cubes.length ? this.mergeCubesByMedian(cubes, numColors) : this.splitCubesByMedian(cubes, numColors);
         } else {
-            this.cubes = this.splitCubesByMedian(cubes, numColors);
+            if (numColors < cubes.length) cubes = this.initCubes();
+            cubes = this.splitCubesByMedian(cubes, numColors);
         }
+        this.cubes = cubes;
+        const colorMapping = this.initColorMapping(numColors);
         const replaceColors = this.getReplaceColors(cubes);
         this.replaceColors = replaceColors;
         const uint32Data = new Uint32Array(imageData.data.buffer);
@@ -479,6 +520,6 @@ class MedianCut {
     }
 }
 export { Cube as Cube };
-export { SplitLog as SplitLog };
+export { MedianCutLog as MedianCutLog };
 export { MedianCut as MedianCut };
 
