@@ -1,37 +1,48 @@
+export type BinaryColorStat = [
+  rgb: number,
+  total: number,
+];
+
 export class OctreeNode {
-  colors = [];
+  level: number;
+  colors: BinaryColorStat[] = [];
   total = 0;
 
-  constructor(level) {
+  constructor(level: number) {
     this.level = level;
   }
 }
 
 export class OctreeLog {
-  constructor(cubeIndex, numLeaves) {
+  cubeIndex: number;
+  numLeaves: number;
+
+  constructor(cubeIndex: number, numLeaves: number) {
     this.cubeIndex = cubeIndex;
     this.numLeaves = numLeaves;
   }
 }
 
 export class OctreeQuantization {
-  replaceColors;
-  colorMapping;
-  splitLogs = [];
+  imageData: ImageData;
+  cubes: OctreeNode[];
+  replaceColors: number[] = [];
+  colorMapping: Uint8Array | Uint16Array | undefined;
+  splitLogs: OctreeLog[] = [];
 
-  constructor(imageData) {
+  constructor(imageData: ImageData) {
     this.imageData = imageData;
     this.cubes = this.initCubes();
   }
 
-  getKey(rgb, level) {
+  getKey(rgb: number, level: number): number {
     const r = ((rgb >> 16 + level) & 1) << 2;
     const g = ((rgb >> 8 + level) & 1) << 1;
     const b = (rgb >> level) & 1;
     return r | g | b;
   }
 
-  initCubes() {
+  initCubes(): OctreeNode[] {
     const { imageData } = this;
     const uint32Data = new Uint32Array(imageData.data.buffer);
     const colorCount = new Uint32Array(16777216);
@@ -59,7 +70,7 @@ export class OctreeQuantization {
     return newCubes;
   }
 
-  splitCubes(cubes, maxColors) {
+  splitCubes(cubes: OctreeNode[], maxColors: number) {
     const { splitLogs } = this;
     while (cubes.length < maxColors) {
       let maxIndex = 0;
@@ -99,7 +110,7 @@ export class OctreeQuantization {
     return cubes;
   }
 
-  mergeCubes(cubes, maxColors) {
+  mergeCubes(cubes: OctreeNode[], maxColors: number) {
     const { splitLogs } = this;
     let i = splitLogs.length - 1;
     while (maxColors < cubes.length) {
@@ -118,8 +129,11 @@ export class OctreeQuantization {
     return cubes;
   }
 
-  getReplaceColors(cubes) {
+  getReplaceColors(cubes: OctreeNode[]): number[] {
     const { colorMapping } = this;
+    if (colorMapping === undefined) {
+      throw new Error("colorMapping is not initialized");
+    }
     const arr = new Array(cubes.length);
     for (let i = 0; i < cubes.length; i++) {
       const colors = cubes[i].colors;
@@ -144,8 +158,11 @@ export class OctreeQuantization {
     return arr;
   }
 
-  getIndexedImage() {
-    const { imageData, replaceColors } = this;
+  getIndexedImage(): Uint8Array | Uint16Array {
+    const { imageData, replaceColors, colorMapping } = this;
+    if (colorMapping === undefined) {
+      throw new Error("colorMapping is not initialized");
+    }
     const uint32Data = new Uint8Array(this.imageData.data.length);
     const imageSize = imageData.width * imageData.height;
     const arr = replaceColors.length <= 256
@@ -154,12 +171,12 @@ export class OctreeQuantization {
     for (let i = 0; i < imageSize; i++) {
       const rgba = uint32Data[i];
       const rgb = rgba & 0xFFFFFF;
-      arr[i] = this.colorMapping[rgb];
+      arr[i] = colorMapping[rgb];
     }
     return arr;
   }
 
-  initColorMapping(maxColors) {
+  initColorMapping(maxColors: number): Uint8Array | Uint16Array {
     const { colorMapping } = this;
     if (maxColors <= 256) {
       if (!(colorMapping instanceof Uint8Array)) {
@@ -170,10 +187,10 @@ export class OctreeQuantization {
         this.colorMapping = new Uint16Array(16777216);
       }
     }
-    return this.colorMapping;
+    return this.colorMapping as Uint8Array | Uint16Array;
   }
 
-  apply(maxColors) {
+  apply(maxColors: number): ImageData {
     const { imageData } = this;
     let { cubes } = this;
     cubes = maxColors < cubes.length

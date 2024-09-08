@@ -1,7 +1,7 @@
-import { OctreeQuantization } from "./octree.js";
+import { OctreeQuantization } from "./octree.ts";
 import { assertEquals } from "@std/assert";
 
-function getRandomImageData(width, height) {
+function getRandomImageData(width: number, height: number): ImageData {
   const manyColors = new Uint32Array(width * height);
   for (let i = 0; i < manyColors.length; i++) {
     const r = Math.floor(Math.random() * 256);
@@ -14,7 +14,7 @@ function getRandomImageData(width, height) {
   return new ImageData(bitmap, width, height);
 }
 
-function isWithinRange(num, max) {
+function isWithinRange(num: number, max: number) {
   return max - 7 <= num && num <= max;
 }
 

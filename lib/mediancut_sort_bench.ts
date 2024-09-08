@@ -1,6 +1,6 @@
-import { MedianCut } from "./mediancut.js";
+import { ColorStat, MedianCut } from "./mediancut.ts";
 
-function getRandomImageData(width, height) {
+function getRandomImageData(width: number, height: number): ImageData {
   const manyColors = new Uint32Array(width * height);
   for (let i = 0; i < manyColors.length; i++) {
     const r = Math.floor(Math.random() * 256);
@@ -13,31 +13,37 @@ function getRandomImageData(width, height) {
   return new ImageData(bitmap, width, height);
 }
 
-function bucketSortUnstable(colors, colorIndex) {
+function bucketSortUnstable(
+  colors: ColorStat[],
+  sortChannel: number,
+): ColorStat[] {
   const buckets = new Array(256);
   for (let i = 0; i < 256; i++) {
     buckets[i] = [];
   }
   for (let i = 0; i < colors.length; i++) {
     const color = colors[i];
-    buckets[color[colorIndex]].push(color);
+    buckets[color[sortChannel]].push(color);
   }
   return buckets.flat();
 }
 
-function bucketSortStable(colors, colorIndex) {
+function bucketSortStable(
+  colors: ColorStat[],
+  sortChannel: number,
+): ColorStat[] {
   const buckets = new Array(256);
   for (let i = 0; i < 256; i++) {
     buckets[i] = [];
   }
   for (let i = 0; i < colors.length; i++) {
     const color = colors[i];
-    buckets[color[colorIndex]].push(color);
+    buckets[color[sortChannel]].push(color);
   }
-  const secondSortIndex = (colorIndex + 1) % 3;
-  const thirdSortIndex = (colorIndex + 2) % 3;
+  const secondSortIndex = (sortChannel + 1) % 3;
+  const thirdSortIndex = (sortChannel + 2) % 3;
   for (let i = 0; i < 256; i++) {
-    buckets[i].sort((a, b) => {
+    buckets[i].sort((a: ColorStat, b: ColorStat) => {
       if (a[secondSortIndex] !== b[secondSortIndex]) {
         return a[secondSortIndex] - b[secondSortIndex];
       }

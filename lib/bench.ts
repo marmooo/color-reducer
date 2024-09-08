@@ -1,19 +1,24 @@
-import {
-  MedianCut,
-  OctreeQuantization,
-  UniformQuantization,
-} from "./mod.js";
+import { MedianCut, OctreeQuantization, UniformQuantization } from "./mod.ts";
 import { getPixels } from "get_pixels";
 import cv from "@techstark/opencv-js";
 
-function getImageData(image) {
+type GetPixelsImageData = {
+  data: Uint8Array | Uint8ClampedArray;
+  width: number;
+  height: number;
+};
+
+function getImageData(image: GetPixelsImageData): ImageData {
   const { data, width, height } = image;
   const uint8 = new Uint8ClampedArray(data.length);
   uint8.set(image.data);
   return new ImageData(uint8, width, height);
 }
 
-function uniformQuantizationByOpencvjs(imageData, maxColors) {
+function uniformQuantizationByOpencvjs(
+  imageData: ImageData,
+  maxColors: number,
+) {
   const cbrtColors = Math.floor(Math.cbrt(maxColors));
   const step = 256 / cbrtColors;
   const center = step / 2;

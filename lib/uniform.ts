@@ -1,9 +1,11 @@
 export class UniformQuantization {
-  constructor(imageData) {
+  imageData: ImageData;
+
+  constructor(imageData: ImageData) {
     this.imageData = imageData;
   }
 
-  getReplaceColors(maxColors) {
+  getReplaceColors(maxColors: number): number[] {
     const cbrtColors = Math.floor(Math.cbrt(maxColors));
     const colors = new Array(cbrtColors ** 3);
     const step = 256 / cbrtColors;
@@ -15,7 +17,7 @@ export class UniformQuantization {
           const r = Math.round(step * R + center);
           const g = Math.round(step * G + center);
           const b = Math.round(step * B + center);
-          colors[i] = { r, g, b };
+          colors[i] = (b * 256 + g) * 256 + r;
           i++;
         }
       }
@@ -23,7 +25,7 @@ export class UniformQuantization {
     return colors;
   }
 
-  getIndexedImage(maxColors) {
+  getIndexedImage(maxColors: number): Uint8Array | Uint16Array {
     const { imageData } = this;
     const cbrtColors = Math.floor(Math.cbrt(maxColors));
     const uint32Data = new Uint32Array(imageData.data.buffer);
@@ -45,7 +47,7 @@ export class UniformQuantization {
     return arr;
   }
 
-  apply(maxColors) {
+  apply(maxColors: number): ImageData {
     const { imageData } = this;
     const cbrtColors = Math.floor(Math.cbrt(maxColors));
     const step = 256 / cbrtColors;

@@ -1,19 +1,24 @@
-import {
-  MedianCut,
-  OctreeQuantization,
-  UniformQuantization,
-} from "./lib/mod.js";
+import { MedianCut, OctreeQuantization, UniformQuantization } from "./mod.ts";
 import { getPixels } from "get_pixels";
 import cv from "@techstark/opencv-js";
 
-function getImageData(image) {
+type GetPixelsImageData = {
+  data: Uint8Array | Uint8ClampedArray;
+  width: number;
+  height: number;
+};
+
+function getImageData(image: GetPixelsImageData): ImageData {
   const { data, width, height } = image;
   const uint8 = new Uint8ClampedArray(data.length);
   uint8.set(image.data);
   return new ImageData(uint8, width, height);
 }
 
-function uniformQuantizationByOpencvjs(imageData, maxColors) {
+function uniformQuantizationByOpencvjs(
+  imageData: ImageData,
+  maxColors: number,
+): Uint8Array {
   const cbrtColors = Math.floor(Math.cbrt(maxColors));
   const step = 256 / cbrtColors;
   const center = step / 2;
@@ -30,7 +35,7 @@ function uniformQuantizationByOpencvjs(imageData, maxColors) {
   return data;
 }
 
-function calcMSE(data1, data2) {
+function calcMSE(data1: Uint8ClampedArray, data2: Uint8ClampedArray): number {
   let error = 0;
   for (let i = 0; i < data1.length; i++) {
     error += Math.pow(data1[i] - data2[i], 2);
@@ -38,7 +43,7 @@ function calcMSE(data1, data2) {
   return error / data1.length;
 }
 
-function measure(name, callback) {
+function measure(name: string, callback: (name: string) => void): void {
   callback(name);
 }
 
@@ -49,7 +54,7 @@ for (const colors of [16, 64, 256]) {
   measure(`Uniform quantization by opencv.js (${colors}colors)`, (name) => {
     const imageData = getImageData(image);
     const data = uniformQuantizationByOpencvjs(imageData, colors);
-    const mse = calcMSE(data, imageData.data);
+    const mse = calcMSE(new Uint8ClampedArray(data), imageData.data);
     console.log(name, mse);
   });
   measure(`Uniform quantization (${colors}colors)`, (name) => {

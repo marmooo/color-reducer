@@ -1,7 +1,7 @@
-import { UniformQuantization } from "./uniform.js";
+import { UniformQuantization } from "./uniform.ts";
 import { assertEquals } from "@std/assert";
 
-function getRandomImageData(width, height) {
+function getRandomImageData(width: number, height: number): ImageData {
   const manyColors = new Uint32Array(width * height);
   for (let i = 0; i < manyColors.length; i++) {
     const r = Math.floor(Math.random() * 256);

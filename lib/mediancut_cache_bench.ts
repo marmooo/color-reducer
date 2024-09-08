@@ -1,7 +1,13 @@
-import { MedianCut } from "./mediancut.js";
+import { MedianCut } from "./mediancut.ts";
 import { getPixels } from "get_pixels";
 
-function getImageData(image) {
+type GetPixelsImageData = {
+  data: Uint8Array | Uint8ClampedArray;
+  width: number;
+  height: number;
+};
+
+function getImageData(image: GetPixelsImageData) {
   const { data, width, height } = image;
   const uint8 = new Uint8ClampedArray(data.length);
   uint8.set(image.data);

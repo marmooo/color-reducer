@@ -1,7 +1,7 @@
-import { MedianCut } from "./mediancut.js";
+import { MedianCut } from "./mediancut.ts";
 import { assertEquals } from "@std/assert";
 
-function getRandomImageData(width, height) {
+function getRandomImageData(width: number, height: number): ImageData {
   const manyColors = new Uint32Array(width * height);
   for (let i = 0; i < manyColors.length; i++) {
     const r = Math.floor(Math.random() * 256);
@@ -74,7 +74,8 @@ Deno.test("Cached mergeCubes()", () => {
     const cube1 = medianCut1.cubes[i];
     const cube2 = medianCut2.cubes[i];
     assertEquals(cube1.total, cube2.total);
-    assertEquals(cube1.type, cube2.type);
+    assertEquals(cube1.sortChannel, cube2.sortChannel);
+    assertEquals(cube1.mainChannel, cube2.mainChannel);
     const colors1 = cube1.colors.map(([r, g, b, a]) => {
       return (a << 24) | (b << 16) | (g << 8) | r;
     });
