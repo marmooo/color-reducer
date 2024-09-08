@@ -69,14 +69,14 @@ for (const colors of [16, 64, 256]) {
   measure(`Median cut (${colors}colors)`, (name) => {
     const imageData = getImageData(image);
     const medianCut = new MedianCut(imageData, { cache: false });
-    const newImageData = medianCut.apply(colors, true);
+    const newImageData = medianCut.apply(colors);
     const mse = calcMSE(newImageData.data, imageData.data);
     console.log(name, mse);
   });
   measure(`Cached median cut (${colors}colors)`, (name) => {
     const imageData = getImageData(image);
     const medianCut = new MedianCut(imageData);
-    const newImageData = medianCut.apply(colors, true);
+    const newImageData = medianCut.apply(colors);
     const mse = calcMSE(newImageData.data, imageData.data);
     console.log(name, mse);
   });
