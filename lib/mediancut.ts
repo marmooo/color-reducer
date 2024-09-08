@@ -226,6 +226,7 @@ export class MedianCut {
       }
       newCube.colors = newColors;
       newCube.total += oldCube.total;
+      newCube.sortChannel = sortChannel;
       newCube.mainChannel = mainChannel;
       cubes.splice(cubeIndex, 2, newCube);
       i--;
