@@ -118,8 +118,7 @@ export class MedianCut {
     return colors;
   }
 
-  bucketSort(colors: ColorStat[], sortChannel: number): ColorStat[][] {
-    const { options } = this;
+  unstableBucketSort(colors: ColorStat[], sortChannel: number): ColorStat[][] {
     const buckets = new Array(256);
     for (let i = 0; i < 256; i++) {
       buckets[i] = [];
@@ -128,17 +127,20 @@ export class MedianCut {
       const color = colors[i];
       buckets[color[sortChannel]].push(color);
     }
-    if (options.cache) {
-      const secondSortIndex = (sortChannel + 1) % 3;
-      const thirdSortIndex = (sortChannel + 2) % 3;
-      for (let i = 0; i < 256; i++) {
-        buckets[i].sort((a: number[], b: number[]) => {
-          if (a[secondSortIndex] !== b[secondSortIndex]) {
-            return a[secondSortIndex] - b[secondSortIndex];
-          }
-          return a[thirdSortIndex] - b[thirdSortIndex];
-        });
-      }
+    return buckets;
+  }
+
+  stableBucketSort(colors: ColorStat[], sortChannel: number): ColorStat[][] {
+    const buckets = this.unstableBucketSort(colors, sortChannel);
+    const secondChannel = (sortChannel + 1) % 3;
+    const thirdChannel = (sortChannel + 2) % 3;
+    for (let i = 0; i < 256; i++) {
+      buckets[i].sort((a: number[], b: number[]) => {
+        if (a[secondChannel] !== b[secondChannel]) {
+          return a[secondChannel] - b[secondChannel];
+        }
+        return a[thirdChannel] - b[thirdChannel];
+      });
     }
     return buckets;
   }
@@ -173,7 +175,9 @@ export class MedianCut {
     colors: ColorStat[],
     sortChannel: Channel,
   ): [ColorStat[], ColorStat[]] {
-    const buckets = this.bucketSort(colors, sortChannel);
+    const buckets = this.options.cache
+      ? this.stableBucketSort(colors, sortChannel)
+      : this.unstableBucketSort(colors, sortChannel);
     const half = Math.floor((colors.length + 1) / 2);
     return this.splitBuckets(buckets, half);
   }
@@ -219,7 +223,7 @@ export class MedianCut {
       const newCube = cubes[cubeIndex];
       const oldCube = cubes[cubeIndex + 1];
       newCube.colors.push(...oldCube.colors);
-      const buckets = this.bucketSort(newCube.colors, sortChannel);
+      const buckets = this.stableBucketSort(newCube.colors, sortChannel);
       const newColors = [];
       for (let j = 0; j < buckets.length; j++) {
         newColors.push(...buckets[j]);
