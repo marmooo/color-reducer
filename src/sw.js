@@ -1,4 +1,4 @@
-const CACHE_NAME = "2024-09-07 10:20";
+const CACHE_NAME = "2024-09-08 10:50";
 const urlsToCache = [
   "/lineart-converter/",
   "/lineart-converter/en/",
