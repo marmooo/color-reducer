@@ -163,7 +163,7 @@ export class OctreeQuantization {
     if (colorMapping === undefined) {
       throw new Error("colorMapping is not initialized");
     }
-    const uint32Data = new Uint8Array(this.imageData.data.length);
+    const uint32Data = new Uint32Array(imageData.data.buffer);
     const imageSize = imageData.width * imageData.height;
     const arr = replaceColors.length <= 256
       ? new Uint8Array(imageSize)
