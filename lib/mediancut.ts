@@ -190,13 +190,14 @@ export class MedianCut {
       for (let i = 1; i < cubes.length; i++) {
         const cube = cubes[i];
         const total = cube.total;
-        if (maxTotal < total && cube.colors.length !== 1) {
+        if (maxTotal < total) {
           maxIndex = i;
           maxTotal = total;
         }
       }
       const maxCube = cubes[maxIndex];
       if (maxCube.total === 1) break;
+      if (maxCube.colors.length === 1) break;
       const sortChannel = maxCube.mainChannel;
       const [colors1, colors2] = this.sortAndSplit(
         maxCube.colors,
