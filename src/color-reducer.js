@@ -432,7 +432,7 @@ class MedianCut {
             for(let i = 1; i < cubes.length; i++){
                 const cube = cubes[i];
                 const total = cube.total;
-                if (maxTotal < total) {
+                if (maxTotal < total && cube.colors.length !== 1) {
                     maxIndex = i;
                     maxTotal = total;
                 }
