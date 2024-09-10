@@ -27,7 +27,7 @@ new UniformQuantization(imageData).apply(256);
 ```
 deno test --allow-read
 deno bench --allow-read
-deno run --allow read lib/mse.ts
+deno run --allow-read lib/mse.ts
 ```
 
 ## Build
