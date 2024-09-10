@@ -218,7 +218,7 @@ class OctreeQuantization {
         if (colorMapping === undefined) {
             throw new Error("colorMapping is not initialized");
         }
-        const uint32Data = new Uint8Array(this.imageData.data.length);
+        const uint32Data = new Uint32Array(imageData.data.buffer);
         const imageSize = imageData.width * imageData.height;
         const arr = replaceColors.length <= 256 ? new Uint8Array(imageSize) : new Uint16Array(imageSize);
         for(let i = 0; i < imageSize; i++){
@@ -369,8 +369,7 @@ class MedianCut {
         }
         return colors;
     }
-    bucketSort(colors, sortChannel) {
-        const { options } = this;
+    unstableBucketSort(colors, sortChannel) {
         const buckets = new Array(256);
         for(let i = 0; i < 256; i++){
             buckets[i] = [];
@@ -379,17 +378,19 @@ class MedianCut {
             const color = colors[i];
             buckets[color[sortChannel]].push(color);
         }
-        if (options.cache) {
-            const secondSortIndex = (sortChannel + 1) % 3;
-            const thirdSortIndex = (sortChannel + 2) % 3;
-            for(let i = 0; i < 256; i++){
-                buckets[i].sort((a, b)=>{
-                    if (a[secondSortIndex] !== b[secondSortIndex]) {
-                        return a[secondSortIndex] - b[secondSortIndex];
-                    }
-                    return a[thirdSortIndex] - b[thirdSortIndex];
-                });
-            }
+        return buckets;
+    }
+    stableBucketSort(colors, sortChannel) {
+        const buckets = this.unstableBucketSort(colors, sortChannel);
+        const secondChannel = (sortChannel + 1) % 3;
+        const thirdChannel = (sortChannel + 2) % 3;
+        for(let i = 0; i < 256; i++){
+            buckets[i].sort((a, b)=>{
+                if (a[secondChannel] !== b[secondChannel]) {
+                    return a[secondChannel] - b[secondChannel];
+                }
+                return a[thirdChannel] - b[thirdChannel];
+            });
         }
         return buckets;
     }
@@ -419,7 +420,7 @@ class MedianCut {
         ];
     }
     sortAndSplit(colors, sortChannel) {
-        const buckets = this.bucketSort(colors, sortChannel);
+        const buckets = this.options.cache ? this.stableBucketSort(colors, sortChannel) : this.unstableBucketSort(colors, sortChannel);
         const half = Math.floor((colors.length + 1) / 2);
         return this.splitBuckets(buckets, half);
     }
@@ -431,13 +432,14 @@ class MedianCut {
             for(let i = 1; i < cubes.length; i++){
                 const cube = cubes[i];
                 const total = cube.total;
-                if (maxTotal < total && cube.colors.length !== 1) {
+                if (maxTotal < total) {
                     maxIndex = i;
                     maxTotal = total;
                 }
             }
             const maxCube = cubes[maxIndex];
             if (maxCube.total === 1) break;
+            if (maxCube.colors.length === 1) break;
             const sortChannel = maxCube.mainChannel;
             const [colors1, colors2] = this.sortAndSplit(maxCube.colors, sortChannel);
             const split1 = new Cube(colors1, sortChannel);
@@ -456,13 +458,14 @@ class MedianCut {
             const newCube = cubes[cubeIndex];
             const oldCube = cubes[cubeIndex + 1];
             newCube.colors.push(...oldCube.colors);
-            const buckets = this.bucketSort(newCube.colors, sortChannel);
+            const buckets = this.stableBucketSort(newCube.colors, sortChannel);
             const newColors = [];
             for(let j = 0; j < buckets.length; j++){
                 newColors.push(...buckets[j]);
             }
             newCube.colors = newColors;
             newCube.total += oldCube.total;
+            newCube.sortChannel = sortChannel;
             newCube.mainChannel = mainChannel;
             cubes.splice(cubeIndex, 2, newCube);
             i--;
@@ -501,7 +504,7 @@ class MedianCut {
         if (colorMapping === undefined) {
             throw new Error("colorMapping is not initialized");
         }
-        const uint32Data = new Uint8Array(imageData.data.length);
+        const uint32Data = new Uint32Array(imageData.data.buffer);
         const imageSize = imageData.width * imageData.height;
         const arr = replaceColors.length <= 256 ? new Uint8Array(imageSize) : new Uint16Array(imageSize);
         for(let i = 0; i < imageSize; i++){
