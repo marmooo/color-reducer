@@ -18,7 +18,7 @@ function isWithinRange(num: number, max: number) {
   return max - 7 <= num && num <= max;
 }
 
-Deno.test("Simple", () => {
+Deno.test("Simple1", () => {
   const bitmap = new Uint8ClampedArray(4);
   const imageData = new ImageData(bitmap, 1, 1);
   const octree = new OctreeQuantization(imageData);
@@ -26,6 +26,18 @@ Deno.test("Simple", () => {
   assertEquals(octree.cubes.length, 1);
   assertEquals(octree.getIndexedImage()[0], 0);
   assertEquals(octree.replaceColors.length, 1);
+});
+Deno.test("Simple2", () => {
+  const bitmap = new Uint8ClampedArray(16);
+  for (let i = 0; i < 4; i++) {
+    bitmap[i] = 255;
+  }
+  const imageData = new ImageData(bitmap, 2, 2);
+  const medianCut = new OctreeQuantization(imageData);
+  medianCut.apply(256);
+  assertEquals(medianCut.cubes.length, 2);
+  assertEquals(medianCut.getIndexedImage()[0], 1);
+  assertEquals(medianCut.replaceColors.length, 2);
 });
 Deno.test("Many colors", () => {
   const imageData = getRandomImageData(64, 64);

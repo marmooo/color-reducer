@@ -14,7 +14,7 @@ function getRandomImageData(width: number, height: number): ImageData {
   return new ImageData(bitmap, width, height);
 }
 
-Deno.test("Simple", () => {
+Deno.test("Simple1", () => {
   const bitmap = new Uint8ClampedArray(4);
   const imageData = new ImageData(bitmap, 1, 1);
   const medianCut = new MedianCut(imageData);
@@ -22,6 +22,18 @@ Deno.test("Simple", () => {
   assertEquals(medianCut.cubes.length, 1);
   assertEquals(medianCut.getIndexedImage()[0], 0);
   assertEquals(medianCut.replaceColors.length, 1);
+});
+Deno.test("Simple2", () => {
+  const bitmap = new Uint8ClampedArray(16);
+  for (let i = 0; i < 4; i++) {
+    bitmap[i] = 255;
+  }
+  const imageData = new ImageData(bitmap, 2, 2);
+  const medianCut = new MedianCut(imageData);
+  medianCut.apply(256);
+  assertEquals(medianCut.cubes.length, 2);
+  assertEquals(medianCut.getIndexedImage()[0], 1);
+  assertEquals(medianCut.replaceColors.length, 2);
 });
 Deno.test("Many colors", () => {
   const imageData = getRandomImageData(64, 64);
