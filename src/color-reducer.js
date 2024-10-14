@@ -31,9 +31,9 @@ class UniformQuantization {
         const step = 256 / cbrtColors;
         for(let i = 0; i < imageSize; i++){
             const rgba = uint32Data[i];
-            const B = rgba >> 24 & 0xFF;
-            const G = rgba >> 16 & 0xFF;
-            const R = rgba >> 8 & 0xFF;
+            const B = rgba >> 16 & 0xFF;
+            const G = rgba >> 8 & 0xFF;
+            const R = rgba & 0xFF;
             const r = Math.floor(R / step);
             const g = Math.floor(G / step);
             const b = Math.floor(B / step);
@@ -81,7 +81,7 @@ class OctreeQuantization {
     imageData;
     cubes;
     replaceColors = [];
-    colorMapping;
+    colorMapping = new Uint8Array();
     splitLogs = [];
     constructor(imageData){
         this.imageData = imageData;
@@ -186,10 +186,7 @@ class OctreeQuantization {
         return cubes;
     }
     getReplaceColors(cubes) {
-        const { colorMapping } = this;
-        if (colorMapping === undefined) {
-            throw new Error("colorMapping is not initialized");
-        }
+        const colorMapping = cubes.length <= 256 ? new Uint8Array(16777216) : new Uint16Array(16777216);
         const arr = new Array(cubes.length);
         for(let i = 0; i < cubes.length; i++){
             const colors = cubes[i].colors;
@@ -211,6 +208,7 @@ class OctreeQuantization {
             const rgb = (avgB * 256 + avgG) * 256 + avgR;
             arr[i] = rgb;
         }
+        this.colorMapping = new Uint8Array(colorMapping.buffer);
         return arr;
     }
     getIndexedImage() {
@@ -228,27 +226,14 @@ class OctreeQuantization {
         }
         return arr;
     }
-    initColorMapping(maxColors) {
-        const { colorMapping } = this;
-        if (maxColors <= 256) {
-            if (!(colorMapping instanceof Uint8Array)) {
-                this.colorMapping = new Uint8Array(16777216);
-            }
-        } else {
-            if (!(colorMapping instanceof Uint16Array)) {
-                this.colorMapping = new Uint16Array(16777216);
-            }
-        }
-        return this.colorMapping;
-    }
     apply(maxColors) {
         const { imageData } = this;
         let { cubes } = this;
         cubes = maxColors < cubes.length ? this.mergeCubes(cubes, maxColors) : this.splitCubes(cubes, maxColors);
         this.cubes = cubes;
-        const colorMapping = this.initColorMapping(cubes.length);
         const replaceColors = this.getReplaceColors(cubes);
         this.replaceColors = replaceColors;
+        const colorMapping = cubes.length <= 256 ? this.colorMapping : new Uint16Array(this.colorMapping.buffer);
         const uint32Data = new Uint32Array(imageData.data.buffer);
         const newUint32Data = new Uint32Array(uint32Data.length);
         for(let i = 0; i < uint32Data.length; i++){
@@ -311,23 +296,13 @@ class Cube {
         ];
     }
 }
-class MedianCutLog {
-    cubeIndex;
-    sortChannel;
-    mainChannel;
-    constructor(cubeIndex, sortChannel, mainChannel){
-        this.cubeIndex = cubeIndex;
-        this.sortChannel = sortChannel;
-        this.mainChannel = mainChannel;
-    }
-}
 class MedianCut {
     imageData;
     options;
     colors;
     cubes;
     replaceColors = [];
-    colorMapping;
+    colorMapping = new Uint8Array();
     splitLogs = [];
     static defaultOptions = {
         cache: true
@@ -445,7 +420,11 @@ class MedianCut {
             const split1 = new Cube(colors1, sortChannel);
             const split2 = new Cube(colors2, sortChannel);
             cubes.splice(maxIndex, 1, split1, split2);
-            const splitLog = new MedianCutLog(maxIndex, maxCube.sortChannel, maxCube.mainChannel);
+            const splitLog = [
+                maxIndex,
+                maxCube.sortChannel,
+                maxCube.mainChannel
+            ];
             splitLogs.push(splitLog);
         }
         return cubes;
@@ -454,7 +433,7 @@ class MedianCut {
         const { splitLogs } = this;
         let i = splitLogs.length - 1;
         while(numColors < cubes.length){
-            const { cubeIndex, sortChannel, mainChannel } = splitLogs[i];
+            const [cubeIndex, sortChannel, mainChannel] = splitLogs[i];
             const newCube = cubes[cubeIndex];
             const oldCube = cubes[cubeIndex + 1];
             newCube.colors.push(...oldCube.colors);
@@ -474,10 +453,7 @@ class MedianCut {
         return cubes;
     }
     getReplaceColors(cubes) {
-        const { colorMapping } = this;
-        if (colorMapping === undefined) {
-            throw new Error("colorMapping is not initialized");
-        }
+        const colorMapping = cubes.length <= 256 ? new Uint8Array(16777216) : new Uint16Array(16777216);
         const arr = new Array(cubes.length);
         for(let i = 0; i < cubes.length; i++){
             const colors = cubes[i].colors;
@@ -497,11 +473,12 @@ class MedianCut {
             const rgb = (avgB * 256 + avgG) * 256 + avgR;
             arr[i] = rgb;
         }
+        this.colorMapping = new Uint8Array(colorMapping.buffer);
         return arr;
     }
     getIndexedImage() {
         const { imageData, replaceColors, colorMapping } = this;
-        if (colorMapping === undefined) {
+        if (colorMapping.length === 0) {
             throw new Error("colorMapping is not initialized");
         }
         const uint32Data = new Uint32Array(imageData.data.buffer);
@@ -512,20 +489,7 @@ class MedianCut {
             const rgb = rgba & 0xFFFFFF;
             arr[i] = colorMapping[rgb];
         }
-        return arr;
-    }
-    initColorMapping(numColors) {
-        const { colorMapping } = this;
-        if (numColors <= 256) {
-            if (!(colorMapping instanceof Uint8Array)) {
-                this.colorMapping = new Uint8Array(16777216);
-            }
-        } else {
-            if (!(colorMapping instanceof Uint16Array)) {
-                this.colorMapping = new Uint16Array(16777216);
-            }
-        }
-        return this.colorMapping;
+        return new Uint8Array(arr.buffer);
     }
     apply(numColors) {
         const { imageData, options } = this;
@@ -537,9 +501,9 @@ class MedianCut {
             cubes = this.splitCubesByMedian(cubes, numColors);
         }
         this.cubes = cubes;
-        const colorMapping = this.initColorMapping(numColors);
         const replaceColors = this.getReplaceColors(cubes);
         this.replaceColors = replaceColors;
+        const colorMapping = cubes.length <= 256 ? this.colorMapping : new Uint16Array(this.colorMapping.buffer);
         const uint32Data = new Uint32Array(imageData.data.buffer);
         const newUint32Data = new Uint32Array(uint32Data.length);
         for(let i = 0; i < uint32Data.length; i++){
@@ -557,6 +521,5 @@ export { R as R };
 export { G as G };
 export { B as B };
 export { Cube as Cube };
-export { MedianCutLog as MedianCutLog };
 export { MedianCut as MedianCut };
 
