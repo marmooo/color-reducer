@@ -27,7 +27,7 @@ export class OctreeQuantization {
   imageData: ImageData;
   cubes: OctreeNode[];
   replaceColors: number[] = [];
-  colorMapping: Uint8Array | Uint16Array | undefined;
+  colorMapping: Uint8Array = new Uint8Array();
   splitLogs: OctreeLog[] = [];
 
   constructor(imageData: ImageData) {
@@ -130,10 +130,9 @@ export class OctreeQuantization {
   }
 
   getReplaceColors(cubes: OctreeNode[]): number[] {
-    const { colorMapping } = this;
-    if (colorMapping === undefined) {
-      throw new Error("colorMapping is not initialized");
-    }
+    const colorMapping = cubes.length <= 256
+      ? new Uint8Array(16777216)
+      : new Uint16Array(16777216);
     const arr = new Array(cubes.length);
     for (let i = 0; i < cubes.length; i++) {
       const colors = cubes[i].colors;
@@ -155,6 +154,7 @@ export class OctreeQuantization {
       const rgb = (avgB * 256 + avgG) * 256 + avgR;
       arr[i] = rgb;
     }
+    this.colorMapping = new Uint8Array(colorMapping.buffer);
     return arr;
   }
 
@@ -176,20 +176,6 @@ export class OctreeQuantization {
     return arr;
   }
 
-  initColorMapping(maxColors: number): Uint8Array | Uint16Array {
-    const { colorMapping } = this;
-    if (maxColors <= 256) {
-      if (!(colorMapping instanceof Uint8Array)) {
-        this.colorMapping = new Uint8Array(16777216);
-      }
-    } else {
-      if (!(colorMapping instanceof Uint16Array)) {
-        this.colorMapping = new Uint16Array(16777216);
-      }
-    }
-    return this.colorMapping as Uint8Array | Uint16Array;
-  }
-
   apply(maxColors: number): ImageData {
     const { imageData } = this;
     let { cubes } = this;
@@ -197,9 +183,11 @@ export class OctreeQuantization {
       ? this.mergeCubes(cubes, maxColors)
       : this.splitCubes(cubes, maxColors);
     this.cubes = cubes;
-    const colorMapping = this.initColorMapping(cubes.length);
     const replaceColors = this.getReplaceColors(cubes);
     this.replaceColors = replaceColors;
+    const colorMapping = cubes.length <= 256
+      ? this.colorMapping
+      : new Uint16Array(this.colorMapping.buffer);
     const uint32Data = new Uint32Array(imageData.data.buffer);
     const newUint32Data = new Uint32Array(uint32Data.length);
     for (let i = 0; i < uint32Data.length; i++) {
