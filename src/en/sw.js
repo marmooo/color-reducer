@@ -1,17 +1,17 @@
-const CACHE_NAME = "2024-07-28 14:00";
+const CACHE_NAME = "2024-10-15 10:00";
 const urlsToCache = [
-  "/lineart-converter/",
-  "/lineart-converter/en/",
-  "/lineart-converter/coi-serviceworker.js",
-  "/lineart-converter/index.js",
-  "/lineart-converter/img/before.webp",
-  "/lineart-converter/img/after.webp",
-  "/lineart-converter/img/anime-64.webp",
-  "/lineart-converter/img/car-64.webp",
-  "/lineart-converter/img/cat-64.webp",
-  "/lineart-converter/img/castle-64.webp",
-  "/lineart-converter/pngs/pngs_bg.wasm",
-  "/lineart-converter/favicon/favicon.svg",
+  "/color-reducer/",
+  "/color-reducer/en/",
+  "/color-reducer/coi-serviceworker.js",
+  "/color-reducer/index.js",
+  "/color-reducer/img/before.webp",
+  "/color-reducer/img/after.webp",
+  "/color-reducer/img/anime-64.webp",
+  "/color-reducer/img/car-64.webp",
+  "/color-reducer/img/cat-64.webp",
+  "/color-reducer/img/castle-64.webp",
+  "/color-reducer/pngs/pngs_bg.wasm",
+  "/color-reducer/favicon/favicon.svg",
   "https://cdn.jsdelivr.net/npm/wasm-feature-detect@1.6.1/dist/umd/index.min.js",
 ];
 
@@ -24,13 +24,13 @@ async function getOpenCVPath() {
   const threadsSupport = self.crossOriginIsolated &&
     await wasmFeatureDetect.threads();
   if (simdSupport && threadsSupport) {
-    return "/lineart-converter/opencv/threaded-simd/opencv_js.js";
+    return "/color-reducer/opencv/threaded-simd/opencv_js.js";
   } else if (simdSupport) {
-    return "/lineart-converter/opencv/simd/opencv_js.js";
+    return "/color-reducer/opencv/simd/opencv_js.js";
   } else if (threadsSupport) {
-    return "/lineart-converter/opencv/threads/opencv_js.js";
+    return "/color-reducer/opencv/threads/opencv_js.js";
   } else {
-    return "/lineart-converter/opencv/wasm/opencv_js.js";
+    return "/color-reducer/opencv/wasm/opencv_js.js";
   }
 }
 
