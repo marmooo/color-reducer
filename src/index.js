@@ -334,7 +334,6 @@ class FilterPanel extends LoadPanel {
   }
 
   addFilters() {
-    this.filtering = false;
     this.filters.uniformQuantization = UniformQuantizationFilter;
     this.filters.octreeQuantization = OctreeQuantizationFilter;
     this.filters.medianCut = MedianCutFilter;
