@@ -36,9 +36,9 @@ export class UniformQuantization {
     const step = 256 / cbrtColors;
     for (let i = 0; i < imageSize; i++) {
       const rgba = uint32Data[i];
-      const B = (rgba >> 24) & 0xFF;
-      const G = (rgba >> 16) & 0xFF;
-      const R = (rgba >> 8) & 0xFF;
+      const B = (rgba >> 16) & 0xFF;
+      const G = (rgba >> 8) & 0xFF;
+      const R = rgba & 0xFF;
       const r = Math.floor(R / step);
       const g = Math.floor(G / step);
       const b = Math.floor(B / step);
