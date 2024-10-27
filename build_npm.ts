@@ -19,7 +19,7 @@ await build({
   },
   package: {
     name: "@marmooo/color-reducer",
-    version: "0.0.7",
+    version: "0.1.0",
     description: "Reduce colors of images.",
     license: "MIT",
     repository: {
