@@ -1,6 +1,8 @@
 {
   "imports": {
+    "@deno/dnt": "jsr:@deno/dnt@^0.41.3",
     "@std/assert": "jsr:@std/assert@^1.0.6",
+    "@std/fs": "jsr:@std/fs@^1.0.5",
     "@techstark/opencv-js": "npm:@techstark/opencv-js@4.10.0-release.1",
     "get_pixels": "https://deno.land/x/get_pixels@v1.2.2/mod.ts"
   }
