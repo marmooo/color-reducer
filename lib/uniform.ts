@@ -25,7 +25,7 @@ export class UniformQuantization {
     return colors;
   }
 
-  getIndexedImage(maxColors: number): Uint8Array | Uint16Array {
+  getIndexedImage(maxColors: number): Uint8Array {
     const { imageData } = this;
     const cbrtColors = Math.floor(Math.cbrt(maxColors));
     const uint32Data = new Uint32Array(imageData.data.buffer);
@@ -44,7 +44,7 @@ export class UniformQuantization {
       const b = Math.floor(B / step);
       arr[i] = (b * cbrtColors + g) * cbrtColors + r;
     }
-    return arr;
+    return new Uint8Array(arr.buffer);
   }
 
   apply(maxColors: number): ImageData {
