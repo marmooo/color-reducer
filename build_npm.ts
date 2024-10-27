@@ -4,9 +4,7 @@ import { build, emptyDir } from "jsr:@deno/dnt";
 await emptyDir("./npm");
 
 await build({
-  entryPoints: [
-    "./lib/mod.ts",
-  ],
+  entryPoints: ["./lib/mod.ts"],
   outDir: "./npm",
   importMap: "deno.json",
   compilerOptions: {
