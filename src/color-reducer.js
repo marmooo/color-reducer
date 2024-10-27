@@ -39,7 +39,7 @@ class UniformQuantization {
             const b = Math.floor(B / step);
             arr[i] = (b * cbrtColors + g) * cbrtColors + r;
         }
-        return arr;
+        return new Uint8Array(arr.buffer);
     }
     apply(maxColors) {
         const { imageData } = this;
