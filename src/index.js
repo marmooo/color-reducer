@@ -501,7 +501,11 @@ class MedianCutFilter extends Filter {
       filterPanel.canvas.height,
     );
     this.filterPanel = filterPanel;
-    this.quantizer = new MedianCut(imageData.data, imageData.width, imageData.height);
+    this.quantizer = new MedianCut(
+      imageData.data,
+      imageData.width,
+      imageData.height,
+    );
   }
 
   apply(color) {
@@ -538,7 +542,11 @@ class OctreeQuantizationFilter extends Filter {
       filterPanel.canvas.height,
     );
     this.filterPanel = filterPanel;
-    this.quantizer = new OctreeQuantization(imageData.data, imageData.width, imageData.height);
+    this.quantizer = new OctreeQuantization(
+      imageData.data,
+      imageData.width,
+      imageData.height,
+    );
   }
 
   apply(color) {
