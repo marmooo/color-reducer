@@ -8,17 +8,10 @@ type GetPixelsImageData = {
   height: number;
 };
 
-function getImageData(image: GetPixelsImageData): ImageData {
-  const { data, width, height } = image;
-  const uint8 = new Uint8ClampedArray(data.length);
-  uint8.set(image.data);
-  return new ImageData(uint8, width, height);
-}
-
 function uniformQuantizationByOpencvjs(
-  imageData: ImageData,
+  imageData: GetPixelsImageData,
   maxColors: number,
-) {
+): Uint8ClampedArray {
   const cbrtColors = Math.floor(Math.cbrt(maxColors));
   const step = 256 / cbrtColors;
   const center = step / 2;
@@ -32,7 +25,7 @@ function uniformQuantizationByOpencvjs(
   const data = src.data;
   lut.delete();
   src.delete();
-  return data;
+  return new Uint8ClampedArray(data);
 }
 
 const file = await Deno.readFile("test/wires.jpg");
@@ -40,36 +33,41 @@ const image = await getPixels(file);
 
 for (const colors of [16, 64, 256]) {
   Deno.bench(`Uniform quantization by opencv.js (${colors}colors)`, (b) => {
-    const imageData = getImageData(image);
     b.start();
-    uniformQuantizationByOpencvjs(imageData, colors);
+    uniformQuantizationByOpencvjs(image, colors);
     b.end();
   });
   Deno.bench(`Uniform quantization (${colors}colors)`, (b) => {
-    const imageData = getImageData(image);
     b.start();
-    const uniform = new UniformQuantization(imageData);
+    const uniform = new UniformQuantization(
+      image.data,
+      image.width,
+      image.height,
+    );
     uniform.apply(colors);
     b.end();
   });
   Deno.bench(`Octree quantization (${colors}colors)`, (b) => {
-    const imageData = getImageData(image);
     b.start();
-    const octree = new OctreeQuantization(imageData);
+    const octree = new OctreeQuantization(
+      image.data,
+      image.width,
+      image.height,
+    );
     octree.apply(colors);
     b.end();
   });
   Deno.bench(`Median cut (${colors}colors)`, (b) => {
-    const imageData = getImageData(image);
     b.start();
-    const medianCut = new MedianCut(imageData, { cache: false });
+    const medianCut = new MedianCut(image.data, image.width, image.height, {
+      cache: false,
+    });
     medianCut.apply(colors);
     b.end();
   });
   Deno.bench(`Cached median cut (${colors}colors)`, (b) => {
-    const imageData = getImageData(image);
     b.start();
-    const medianCut = new MedianCut(imageData);
+    const medianCut = new MedianCut(image.data, image.width, image.height);
     medianCut.apply(colors);
     b.end();
   });

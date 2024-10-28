@@ -8,17 +8,10 @@ type GetPixelsImageData = {
   height: number;
 };
 
-function getImageData(image: GetPixelsImageData): ImageData {
-  const { data, width, height } = image;
-  const uint8 = new Uint8ClampedArray(data.length);
-  uint8.set(image.data);
-  return new ImageData(uint8, width, height);
-}
-
 function uniformQuantizationByOpencvjs(
-  imageData: ImageData,
+  imageData: GetPixelsImageData,
   maxColors: number,
-): Uint8Array {
+): Uint8ClampedArray {
   const cbrtColors = Math.floor(Math.cbrt(maxColors));
   const step = 256 / cbrtColors;
   const center = step / 2;
@@ -32,10 +25,10 @@ function uniformQuantizationByOpencvjs(
   const data = src.data;
   lut.delete();
   src.delete();
-  return data;
+  return new Uint8ClampedArray(data);
 }
 
-function calcMSE(data1: Uint8ClampedArray, data2: Uint8ClampedArray): number {
+function calcMSE(data1: Uint8ClampedArray, data2: Uint8Array): number {
   let error = 0;
   for (let i = 0; i < data1.length; i++) {
     error += Math.pow(data1[i] - data2[i], 2);
@@ -52,37 +45,42 @@ const image = await getPixels(file);
 
 for (const colors of [16, 64, 256]) {
   measure(`Uniform quantization by opencv.js (${colors}colors)`, (name) => {
-    const imageData = getImageData(image);
-    const data = uniformQuantizationByOpencvjs(imageData, colors);
-    const mse = calcMSE(new Uint8ClampedArray(data), imageData.data);
+    const data = uniformQuantizationByOpencvjs(image, colors);
+    const mse = calcMSE(data, image.data);
     console.log(name, mse);
   });
   measure(`Uniform quantization (${colors}colors)`, (name) => {
-    const imageData = getImageData(image);
-    const uniform = new UniformQuantization(imageData);
-    const newImageData = uniform.apply(colors);
-    const mse = calcMSE(newImageData.data, imageData.data);
+    const uniform = new UniformQuantization(
+      image.data,
+      image.width,
+      image.height,
+    );
+    const newImage = uniform.apply(colors);
+    const mse = calcMSE(newImage, image.data);
     console.log(name, mse);
   });
   measure(`Octree quantization (${colors}colors)`, (name) => {
-    const imageData = getImageData(image);
-    const octree = new OctreeQuantization(imageData);
-    const newImageData = octree.apply(colors);
-    const mse = calcMSE(newImageData.data, imageData.data);
+    const octree = new OctreeQuantization(
+      image.data,
+      image.width,
+      image.height,
+    );
+    const newImage = octree.apply(colors);
+    const mse = calcMSE(newImage, image.data);
     console.log(name, mse);
   });
   measure(`Median cut (${colors}colors)`, (name) => {
-    const imageData = getImageData(image);
-    const medianCut = new MedianCut(imageData, { cache: false });
-    const newImageData = medianCut.apply(colors);
-    const mse = calcMSE(newImageData.data, imageData.data);
+    const medianCut = new MedianCut(image.data, image.width, image.height, {
+      cache: false,
+    });
+    const newImage = medianCut.apply(colors);
+    const mse = calcMSE(newImage, image.data);
     console.log(name, mse);
   });
   measure(`Cached median cut (${colors}colors)`, (name) => {
-    const imageData = getImageData(image);
-    const medianCut = new MedianCut(imageData);
-    const newImageData = medianCut.apply(colors);
-    const mse = calcMSE(newImageData.data, imageData.data);
+    const medianCut = new MedianCut(image.data, image.width, image.height);
+    const newImage = medianCut.apply(colors);
+    const mse = calcMSE(newImage, image.data);
     console.log(name, mse);
   });
 }

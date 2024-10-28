@@ -24,14 +24,22 @@ export class OctreeLog {
 }
 
 export class OctreeQuantization {
-  imageData: ImageData;
+  image: Uint8ClampedArray | Uint8Array;
+  width: number;
+  height: number;
   cubes: OctreeNode[];
   replaceColors: number[] = [];
   colorMapping: Uint8Array = new Uint8Array();
   splitLogs: OctreeLog[] = [];
 
-  constructor(imageData: ImageData) {
-    this.imageData = imageData;
+  constructor(
+    image: Uint8ClampedArray | Uint8Array,
+    width: number,
+    height: number,
+  ) {
+    this.image = image;
+    this.width = width;
+    this.height = height;
     this.cubes = this.initCubes();
   }
 
@@ -43,8 +51,7 @@ export class OctreeQuantization {
   }
 
   initCubes(): OctreeNode[] {
-    const { imageData } = this;
-    const uint32Data = new Uint32Array(imageData.data.buffer);
+    const uint32Data = new Uint32Array(this.image.buffer);
     const colorCount = new Uint32Array(16777216);
     for (let i = 0; i < uint32Data.length; i++) {
       const rgba = uint32Data[i];
@@ -159,13 +166,13 @@ export class OctreeQuantization {
   }
 
   getIndexedImage(): Uint8Array | Uint16Array {
-    const { imageData, replaceColors, colorMapping } = this;
+    const { colorMapping } = this;
     if (colorMapping === undefined) {
       throw new Error("colorMapping is not initialized");
     }
-    const uint32Data = new Uint32Array(imageData.data.buffer);
-    const imageSize = imageData.width * imageData.height;
-    const arr = replaceColors.length <= 256
+    const uint32Data = new Uint32Array(this.image.buffer);
+    const imageSize = this.width * this.height;
+    const arr = this.replaceColors.length <= 256
       ? new Uint8Array(imageSize)
       : new Uint16Array(imageSize);
     for (let i = 0; i < imageSize; i++) {
@@ -176,8 +183,7 @@ export class OctreeQuantization {
     return arr;
   }
 
-  apply(maxColors: number): ImageData {
-    const { imageData } = this;
+  apply(maxColors: number): Uint8ClampedArray {
     let { cubes } = this;
     cubes = maxColors < cubes.length
       ? this.mergeCubes(cubes, maxColors)
@@ -188,7 +194,7 @@ export class OctreeQuantization {
     const colorMapping = cubes.length <= 256
       ? this.colorMapping
       : new Uint16Array(this.colorMapping.buffer);
-    const uint32Data = new Uint32Array(imageData.data.buffer);
+    const uint32Data = new Uint32Array(this.image.buffer);
     const newUint32Data = new Uint32Array(uint32Data.length);
     for (let i = 0; i < uint32Data.length; i++) {
       const rgba = uint32Data[i];
@@ -196,7 +202,6 @@ export class OctreeQuantization {
       const newColor = replaceColors[colorMapping[rgb]];
       newUint32Data[i] = newColor | (rgba & 0xFF000000);
     }
-    const data = new Uint8ClampedArray(newUint32Data.buffer);
-    return new ImageData(data, imageData.width, imageData.height);
+    return new Uint8ClampedArray(newUint32Data.buffer);
   }
 }

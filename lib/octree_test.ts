@@ -1,7 +1,7 @@
 import { OctreeQuantization } from "./octree.ts";
 import { assertEquals } from "@std/assert";
 
-function getRandomImageData(width: number, height: number): ImageData {
+function getRandomImage(width: number, height: number): Uint8ClampedArray {
   const manyColors = new Uint32Array(width * height);
   for (let i = 0; i < manyColors.length; i++) {
     const r = Math.floor(Math.random() * 256);
@@ -10,8 +10,7 @@ function getRandomImageData(width: number, height: number): ImageData {
     const a = 255;
     manyColors[i] = (a << 24) | (b << 16) | (g << 8) | r;
   }
-  const bitmap = new Uint8ClampedArray(manyColors.buffer);
-  return new ImageData(bitmap, width, height);
+  return new Uint8ClampedArray(manyColors.buffer);
 }
 
 function isWithinRange(num: number, max: number) {
@@ -19,37 +18,39 @@ function isWithinRange(num: number, max: number) {
 }
 
 Deno.test("Simple1", () => {
-  const bitmap = new Uint8ClampedArray(4);
-  const imageData = new ImageData(bitmap, 1, 1);
-  const octree = new OctreeQuantization(imageData);
+  const image = new Uint8ClampedArray(4);
+  const octree = new OctreeQuantization(image, 1, 1);
   octree.apply(256);
   assertEquals(octree.cubes.length, 1);
   assertEquals(octree.getIndexedImage()[0], 0);
   assertEquals(octree.replaceColors.length, 1);
 });
 Deno.test("Simple2", () => {
-  const bitmap = new Uint8ClampedArray(16);
+  const image = new Uint8ClampedArray(16);
   for (let i = 0; i < 4; i++) {
-    bitmap[i] = 255;
+    image[i] = 255;
   }
-  const imageData = new ImageData(bitmap, 2, 2);
-  const medianCut = new OctreeQuantization(imageData);
+  const medianCut = new OctreeQuantization(image, 2, 2);
   medianCut.apply(256);
   assertEquals(medianCut.cubes.length, 2);
   assertEquals(medianCut.getIndexedImage()[0], 1);
   assertEquals(medianCut.replaceColors.length, 2);
 });
 Deno.test("Many colors", () => {
-  const imageData = getRandomImageData(64, 64);
-  const octree = new OctreeQuantization(imageData);
+  const width = 64;
+  const height = 64;
+  const image = getRandomImage(width, height);
+  const octree = new OctreeQuantization(image, width, height);
   octree.apply(32);
   assertEquals(isWithinRange(octree.cubes.length, 32), true);
   assertEquals(isWithinRange(octree.replaceColors.length, 32), true);
 });
 Deno.test("Cached splitCubes()", () => {
-  const imageData = getRandomImageData(64, 64);
-  const octree1 = new OctreeQuantization(imageData);
-  const octree2 = new OctreeQuantization(imageData);
+  const width = 64;
+  const height = 64;
+  const image = getRandomImage(width, height);
+  const octree1 = new OctreeQuantization(image, width, height);
+  const octree2 = new OctreeQuantization(image, width, height);
   octree1.apply(64);
   octree2.apply(16);
   octree2.apply(32);
@@ -65,9 +66,11 @@ Deno.test("Cached splitCubes()", () => {
   }
 });
 Deno.test("Cached mergeCubes()", () => {
-  const imageData = getRandomImageData(64, 64);
-  const octree1 = new OctreeQuantization(imageData);
-  const octree2 = new OctreeQuantization(imageData);
+  const width = 64;
+  const height = 64;
+  const image = getRandomImage(width, height);
+  const octree1 = new OctreeQuantization(image, width, height);
+  const octree2 = new OctreeQuantization(image, width, height);
   octree1.apply(32);
   octree2.apply(64);
   assertEquals(isWithinRange(octree2.cubes.length, 64), true);

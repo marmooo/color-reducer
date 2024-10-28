@@ -1,7 +1,7 @@
 import { MedianCut } from "./mediancut.ts";
 import { assertEquals } from "@std/assert";
 
-function getRandomImageData(width: number, height: number): ImageData {
+function getRandomImage(width: number, height: number): Uint8ClampedArray {
   const manyColors = new Uint32Array(width * height);
   for (let i = 0; i < manyColors.length; i++) {
     const r = Math.floor(Math.random() * 256);
@@ -10,42 +10,43 @@ function getRandomImageData(width: number, height: number): ImageData {
     const a = 255;
     manyColors[i] = (a << 24) | (b << 16) | (g << 8) | r;
   }
-  const bitmap = new Uint8ClampedArray(manyColors.buffer);
-  return new ImageData(bitmap, width, height);
+  return new Uint8ClampedArray(manyColors.buffer);
 }
 
 Deno.test("Simple1", () => {
-  const bitmap = new Uint8ClampedArray(4);
-  const imageData = new ImageData(bitmap, 1, 1);
-  const medianCut = new MedianCut(imageData);
+  const image = new Uint8ClampedArray(4);
+  const medianCut = new MedianCut(image, 1, 1);
   medianCut.apply(256);
   assertEquals(medianCut.cubes.length, 1);
   assertEquals(medianCut.getIndexedImage()[0], 0);
   assertEquals(medianCut.replaceColors.length, 1);
 });
 Deno.test("Simple2", () => {
-  const bitmap = new Uint8ClampedArray(16);
+  const image = new Uint8ClampedArray(16);
   for (let i = 0; i < 4; i++) {
-    bitmap[i] = 255;
+    image[i] = 255;
   }
-  const imageData = new ImageData(bitmap, 2, 2);
-  const medianCut = new MedianCut(imageData);
+  const medianCut = new MedianCut(image, 2, 2);
   medianCut.apply(256);
   assertEquals(medianCut.cubes.length, 2);
   assertEquals(medianCut.getIndexedImage()[0], 1);
   assertEquals(medianCut.replaceColors.length, 2);
 });
 Deno.test("Many colors", () => {
-  const imageData = getRandomImageData(64, 64);
-  const medianCut = new MedianCut(imageData);
+  const width = 64;
+  const height = 64;
+  const image = getRandomImage(64, 64);
+  const medianCut = new MedianCut(image, width, height);
   medianCut.apply(32);
   assertEquals(medianCut.cubes.length, 32);
   assertEquals(medianCut.replaceColors.length, 32);
 });
 Deno.test("Cached splitCubes()", () => {
-  const imageData = getRandomImageData(64, 64);
-  const medianCut1 = new MedianCut(imageData);
-  const medianCut2 = new MedianCut(imageData);
+  const width = 64;
+  const height = 64;
+  const image = getRandomImage(64, 64);
+  const medianCut1 = new MedianCut(image, width, height);
+  const medianCut2 = new MedianCut(image, width, height);
   medianCut1.apply(64);
   medianCut2.apply(16);
   medianCut2.apply(32);
@@ -66,9 +67,11 @@ Deno.test("Cached splitCubes()", () => {
   }
 });
 Deno.test("Cached mergeCubes()", () => {
-  const imageData = getRandomImageData(64, 64);
-  const medianCut1 = new MedianCut(imageData);
-  const medianCut2 = new MedianCut(imageData);
+  const width = 64;
+  const height = 64;
+  const image = getRandomImage(width, height);
+  const medianCut1 = new MedianCut(image, width, height);
+  const medianCut2 = new MedianCut(image, width, height);
   medianCut1.apply(32);
   medianCut2.apply(64);
   assertEquals(medianCut2.cubes.length, 64);
@@ -101,8 +104,10 @@ Deno.test("Cached mergeCubes()", () => {
   }
 });
 Deno.test("No chache", () => {
-  const imageData = getRandomImageData(64, 64);
-  const medianCut = new MedianCut(imageData, { cache: false });
+  const width = 64;
+  const height = 64;
+  const image = getRandomImage(width, height);
+  const medianCut = new MedianCut(image, width, height, { cache: false });
   medianCut.apply(32);
   assertEquals(medianCut.cubes.length, 32);
   assertEquals(medianCut.replaceColors.length, 32);

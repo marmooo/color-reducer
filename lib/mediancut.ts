@@ -64,7 +64,9 @@ interface MedianCutOptions {
 }
 
 export class MedianCut {
-  imageData: ImageData;
+  image: Uint8ClampedArray | Uint8Array;
+  width: number;
+  height: number;
   options: MedianCutOptions;
   colors: ColorStat[];
   cubes: Cube[];
@@ -77,10 +79,14 @@ export class MedianCut {
   };
 
   constructor(
-    imageData: ImageData,
+    image: Uint8ClampedArray | Uint8Array,
+    width: number,
+    height: number,
     options: MedianCutOptions = MedianCut.defaultOptions,
   ) {
-    this.imageData = imageData;
+    this.image = image;
+    this.width = width;
+    this.height = height;
     this.options = options;
     this.colors = this.getColors();
     this.cubes = this.initCubes();
@@ -91,8 +97,7 @@ export class MedianCut {
   }
 
   getColors(): ColorStat[] {
-    const { imageData } = this;
-    const uint32Data = new Uint32Array(imageData.data.buffer);
+    const uint32Data = new Uint32Array(this.image.buffer);
     const colorCount = new Uint32Array(16777216);
     for (let i = 0; i < uint32Data.length; i++) {
       const rgba = uint32Data[i];
@@ -262,13 +267,13 @@ export class MedianCut {
   }
 
   getIndexedImage(): Uint8Array {
-    const { imageData, replaceColors, colorMapping } = this;
+    const { colorMapping } = this;
     if (colorMapping.length === 0) {
       throw new Error("colorMapping is not initialized");
     }
-    const uint32Data = new Uint32Array(imageData.data.buffer);
-    const imageSize = imageData.width * imageData.height;
-    const arr = replaceColors.length <= 256
+    const uint32Data = new Uint32Array(this.image.buffer);
+    const imageSize = this.width * this.height;
+    const arr = this.replaceColors.length <= 256
       ? new Uint8Array(imageSize)
       : new Uint16Array(imageSize);
     for (let i = 0; i < imageSize; i++) {
@@ -279,10 +284,9 @@ export class MedianCut {
     return new Uint8Array(arr.buffer);
   }
 
-  apply(numColors: number): ImageData {
-    const { imageData, options } = this;
+  apply(numColors: number): Uint8ClampedArray {
     let { cubes } = this;
-    if (options.cache) {
+    if (this.options.cache) {
       cubes = numColors < cubes.length
         ? this.mergeCubesByMedian(cubes, numColors)
         : this.splitCubesByMedian(cubes, numColors);
@@ -296,7 +300,7 @@ export class MedianCut {
     const colorMapping = cubes.length <= 256
       ? this.colorMapping
       : new Uint16Array(this.colorMapping.buffer);
-    const uint32Data = new Uint32Array(imageData.data.buffer);
+    const uint32Data = new Uint32Array(this.image.buffer);
     const newUint32Data = new Uint32Array(uint32Data.length);
     for (let i = 0; i < uint32Data.length; i++) {
       const rgba = uint32Data[i];
@@ -304,7 +308,6 @@ export class MedianCut {
       const newColor = replaceColors[colorMapping[rgb]];
       newUint32Data[i] = newColor | (rgba & 0xFF000000);
     }
-    const data = new Uint8ClampedArray(newUint32Data.buffer);
-    return new ImageData(data, imageData.width, imageData.height);
+    return new Uint8ClampedArray(newUint32Data.buffer);
   }
 }

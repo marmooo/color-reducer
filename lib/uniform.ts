@@ -1,8 +1,16 @@
 export class UniformQuantization {
-  imageData: ImageData;
+  image: Uint8ClampedArray | Uint8Array;
+  width: number;
+  height: number;
 
-  constructor(imageData: ImageData) {
-    this.imageData = imageData;
+  constructor(
+    image: Uint8ClampedArray | Uint8Array,
+    width: number,
+    height: number,
+  ) {
+    this.image = image;
+    this.width = width;
+    this.height = height;
   }
 
   getReplaceColors(maxColors: number): number[] {
@@ -26,10 +34,9 @@ export class UniformQuantization {
   }
 
   getIndexedImage(maxColors: number): Uint8Array {
-    const { imageData } = this;
     const cbrtColors = Math.floor(Math.cbrt(maxColors));
-    const uint32Data = new Uint32Array(imageData.data.buffer);
-    const imageSize = imageData.width * imageData.height;
+    const uint32Data = new Uint32Array(this.image.buffer);
+    const imageSize = this.width * this.height;
     const arr = cbrtColors < 7
       ? new Uint8Array(imageSize)
       : new Uint16Array(imageSize);
@@ -47,28 +54,27 @@ export class UniformQuantization {
     return new Uint8Array(arr.buffer);
   }
 
-  apply(maxColors: number): ImageData {
-    const { imageData } = this;
+  apply(maxColors: number): Uint8ClampedArray {
+    const { image } = this;
     const cbrtColors = Math.floor(Math.cbrt(maxColors));
     const step = 256 / cbrtColors;
     const center = step / 2;
-    const data = imageData.data;
-    const newData = new Uint8ClampedArray(data.length);
-    for (let ri = 0; ri < data.length; ri += 4) {
+    const newImage = new Uint8ClampedArray(image.length);
+    for (let ri = 0; ri < image.length; ri += 4) {
       const gi = ri + 1;
       const bi = ri + 2;
       const ai = ri + 3;
-      newData[ri] = Math.round(
-        Math.floor(data[ri] / step) * step + center,
+      newImage[ri] = Math.round(
+        Math.floor(image[ri] / step) * step + center,
       );
-      newData[gi] = Math.round(
-        Math.floor(data[gi] / step) * step + center,
+      newImage[gi] = Math.round(
+        Math.floor(image[gi] / step) * step + center,
       );
-      newData[bi] = Math.round(
-        Math.floor(data[bi] / step) * step + center,
+      newImage[bi] = Math.round(
+        Math.floor(image[bi] / step) * step + center,
       );
-      newData[ai] = data[ai];
+      newImage[ai] = image[ai];
     }
-    return new ImageData(newData, imageData.width, imageData.height);
+    return newImage;
   }
 }

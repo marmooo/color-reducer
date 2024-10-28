@@ -1,6 +1,6 @@
 import { ColorStat, MedianCut } from "./mediancut.ts";
 
-function getRandomImageData(width: number, height: number): ImageData {
+function getRandomImage(width: number, height: number): Uint8ClampedArray {
   const manyColors = new Uint32Array(width * height);
   for (let i = 0; i < manyColors.length; i++) {
     const r = Math.floor(Math.random() * 256);
@@ -9,8 +9,7 @@ function getRandomImageData(width: number, height: number): ImageData {
     const a = 255;
     manyColors[i] = (a << 24) | (b << 16) | (g << 8) | r;
   }
-  const bitmap = new Uint8ClampedArray(manyColors.buffer);
-  return new ImageData(bitmap, width, height);
+  return new Uint8ClampedArray(manyColors.buffer);
 }
 
 function unstableBucketSort(
@@ -194,8 +193,10 @@ function stableRadixSort(
   return arr;
 }
 
-const imageData = getRandomImageData(512, 512);
-const medianCut = new MedianCut(imageData);
+const width = 512;
+const height = 512;
+const image = getRandomImage(width, height);
+const medianCut = new MedianCut(image, width, height);
 
 Deno.bench("Stable sort()", () => {
   const colors = structuredClone(medianCut.cubes[0].colors);

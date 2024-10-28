@@ -15,11 +15,9 @@ import {
   UniformQuantization,
 } from "npm:@marmooo/color-reducer";
 
-const imageData = new ImageData(dataArray, 64, 64);
-
-new MedianCut(imageData).apply(256);
-new OctreeQuantization(imageData).apply(256);
-new UniformQuantization(imageData).apply(256);
+new MedianCut(uint8, width, height).apply(256);
+new OctreeQuantization(uint8, width, height).apply(256);
+new UniformQuantization(uint8, width, height).apply(256);
 ```
 
 ## Test

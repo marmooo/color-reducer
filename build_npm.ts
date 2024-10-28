@@ -12,10 +12,6 @@ await build({
   },
   shims: {
     deno: true,
-    custom: [{
-      module: "./lib/imagedata.ts",
-      globalNames: ["ImageData"],
-    }],
   },
   package: {
     name: "@marmooo/color-reducer",
