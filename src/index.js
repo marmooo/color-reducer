@@ -501,7 +501,7 @@ class MedianCutFilter extends Filter {
       filterPanel.canvas.height,
     );
     this.filterPanel = filterPanel;
-    this.quantizer = new MedianCut(imageData);
+    this.quantizer = new MedianCut(imageData.data, imageData.width, imageData.height);
   }
 
   apply(color) {
@@ -514,7 +514,9 @@ class MedianCutFilter extends Filter {
     if (color === 9) {
       filterPanel.canvasContext.drawImage(filterPanel.offscreenCanvas, 0, 0);
     } else {
-      const newImageData = this.quantizer.apply(2 ** color);
+      const { width, height } = this.quantizer;
+      const newImage = this.quantizer.apply(2 ** color);
+      const newImageData = new ImageData(newImage, width, height);
       filterPanel.canvasContext.putImageData(newImageData, 0, 0);
     }
   }
@@ -536,7 +538,7 @@ class OctreeQuantizationFilter extends Filter {
       filterPanel.canvas.height,
     );
     this.filterPanel = filterPanel;
-    this.quantizer = new OctreeQuantization(imageData);
+    this.quantizer = new OctreeQuantization(imageData.data, imageData.width, imageData.height);
   }
 
   apply(color) {
@@ -549,7 +551,9 @@ class OctreeQuantizationFilter extends Filter {
     if (color === 9) {
       filterPanel.canvasContext.drawImage(filterPanel.offscreenCanvas, 0, 0);
     } else {
-      const newImageData = this.quantizer.apply(2 ** color);
+      const { width, height } = this.quantizer;
+      const newImage = this.quantizer.apply(2 ** color);
+      const newImageData = new ImageData(newImage, width, height);
       filterPanel.canvasContext.putImageData(newImageData, 0, 0);
     }
   }
