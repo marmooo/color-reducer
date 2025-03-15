@@ -158,7 +158,11 @@ class LoadPanel extends Panel {
     select.options[0].selected = true;
     select.dispatchEvent(new Event("change"));
     filterPanel.currentFilter = filter;
-    filter.apply(...filter.defaultOptions);
+    filterPanel.canvas.classList.add("loading");
+    setTimeout(() => {
+      filter.apply(...filter.defaultOptions);
+      filterPanel.canvas.classList.remove("loading");
+    }, 0);
   };
 
   loadImage(url) {
