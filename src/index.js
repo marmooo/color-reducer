@@ -597,6 +597,9 @@ loadConfig();
 initLangSelect();
 initTooltip();
 setTransparentCSSVariables();
+await loadScript(await getOpenCVPath());
+cv = await cv();
+
 document.getElementById("toggleDarkMode").onclick = toggleDarkMode;
 globalThis.ondragover = (event) => {
   event.preventDefault();
@@ -612,6 +615,3 @@ globalThis.addEventListener("paste", (event) => {
   if (!file) return;
   loadPanel.loadFile(file);
 });
-
-await loadScript(await getOpenCVPath());
-cv = await cv();
