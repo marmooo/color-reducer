@@ -188,7 +188,7 @@ class LoadPanel extends Panel {
     filterPanel.currentFilter = filter;
     filterPanel.canvas.classList.add("loading");
     setTimeout(() => {
-      filter.apply(...filter.defaultOptions);
+      filter.apply();
       filterPanel.canvas.classList.remove("loading");
     }, 0);
   };
@@ -363,7 +363,7 @@ class FilterPanel extends LoadPanel {
     this.selectedIndex = selectedIndex;
     const filter = new this.filters[currClass](this);
     this.currentFilter = filter;
-    filter.apply(...filter.defaultOptions);
+    filter.apply();
   }
 
   addFilters() {
@@ -415,7 +415,6 @@ class Filter {
 
 class OutputOptions extends Filter {
   cached = false;
-  defaultOptions = [0.8];
 
   constructor(filterPanel) {
     const root = filterPanel.panel.querySelector(".outputOptions");
@@ -437,13 +436,13 @@ class OutputOptions extends Filter {
     for (const input of filters.querySelectorAll("input")) {
       input.addEventListener("input", () => {
         this.cached = false;
-        this.inputs.quality.value = this.defaultOptions[0];
+        this.inputs.quality.value = 0.8;
         filterPanel.canvasContext.drawImage(this.canvas, 0, 0);
       });
     }
     this.typeSelect.addEventListener("change", () => {
       this.cached = false;
-      this.inputs.quality.value = this.defaultOptions[0];
+      this.inputs.quality.value = 0.8;
       filterPanel.canvasContext.drawImage(this.canvas, 0, 0);
     });
   }
@@ -480,8 +479,6 @@ class OutputOptions extends Filter {
 }
 
 class UniformQuantizationFilter extends Filter {
-  defaultOptions = [6];
-
   constructor(filterPanel) {
     const root = filterPanel.panel.querySelector(".uniformQuantization");
     const inputs = {
@@ -491,13 +488,9 @@ class UniformQuantizationFilter extends Filter {
     this.filterPanel = filterPanel;
   }
 
-  apply(color) {
+  apply() {
     const { inputs, filterPanel } = this;
-    if (color === undefined) {
-      color = Number(inputs.color.value);
-    } else {
-      inputs.color.value = color;
-    }
+    const color = Number(inputs.color.value);
     if (color === 16) {
       filterPanel.canvasContext.drawImage(filterPanel.offscreenCanvas, 0, 0);
     } else {
@@ -519,8 +512,6 @@ class UniformQuantizationFilter extends Filter {
 }
 
 class MedianCutFilter extends Filter {
-  defaultOptions = [6];
-
   constructor(filterPanel) {
     const root = filterPanel.panel.querySelector(".medianCut");
     const inputs = {
@@ -541,13 +532,9 @@ class MedianCutFilter extends Filter {
     );
   }
 
-  apply(color) {
+  apply() {
     const { inputs, filterPanel } = this;
-    if (color === undefined) {
-      color = Number(inputs.color.value);
-    } else {
-      inputs.color.value = color;
-    }
+    const color = Number(inputs.color.value);
     if (color === 9) {
       filterPanel.canvasContext.drawImage(filterPanel.offscreenCanvas, 0, 0);
     } else {
@@ -560,8 +547,6 @@ class MedianCutFilter extends Filter {
 }
 
 class OctreeQuantizationFilter extends Filter {
-  defaultOptions = [6];
-
   constructor(filterPanel) {
     const root = filterPanel.panel.querySelector(".octreeQuantization");
     const inputs = {
@@ -582,13 +567,9 @@ class OctreeQuantizationFilter extends Filter {
     );
   }
 
-  apply(color) {
+  apply() {
     const { inputs, filterPanel } = this;
-    if (color === undefined) {
-      color = Number(inputs.color.value);
-    } else {
-      inputs.color.value = color;
-    }
+    const color = Number(inputs.color.value);
     if (color === 9) {
       filterPanel.canvasContext.drawImage(filterPanel.offscreenCanvas, 0, 0);
     } else {
