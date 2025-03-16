@@ -363,7 +363,11 @@ class FilterPanel extends LoadPanel {
     this.selectedIndex = selectedIndex;
     const filter = new this.filters[currClass](this);
     this.currentFilter = filter;
-    filter.apply();
+    this.canvas.classList.add("loading");
+    setTimeout(() => {
+      this.currentFilter.apply();
+      this.canvas.classList.remove("loading");
+    }, 0);
   }
 
   addFilters() {
@@ -401,7 +405,13 @@ class Filter {
 
   addInputEvents(root, inputs) {
     for (const input of Object.values(inputs)) {
-      input.addEventListener("input", () => this.apply());
+      input.addEventListener("input", () => {
+        filterPanel.canvas.classList.add("loading");
+        setTimeout(() => {
+          filterPanel.currentFilter.apply();
+          filterPanel.canvas.classList.remove("loading");
+        }, 0);
+      });
     }
     for (const node of root.querySelectorAll("button[title=reset]")) {
       node.onclick = () => {
