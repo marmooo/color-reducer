@@ -181,11 +181,8 @@ class LoadPanel extends Panel {
   handleImageOnloadEvent = (event) => {
     const img = event.currentTarget;
     filterPanel.setCanvas(img);
-    const filter = new filterPanel.filters.uniformQuantization(filterPanel);
-    const select = filterPanel.panel.querySelector(".filterSelect");
-    select.options[0].selected = true;
-    select.dispatchEvent(new Event("change"));
-    filterPanel.currentFilter = filter;
+    filterPanel.filterSelectEvent();
+    const filter = filterPanel.currentFilter;
     filterPanel.canvas.classList.add("loading");
     setTimeout(() => {
       filter.apply();
@@ -257,8 +254,8 @@ class FilterPanel extends LoadPanel {
 
     panel.querySelector(".moveTop").onclick = () => this.moveLoadPanel();
     panel.querySelector(".download").onclick = () => this.download();
-    panel.querySelector(".filterSelect").onchange = (event) =>
-      this.filterSelect(event);
+    this.filterSelect = panel.querySelector(".filterSelect");
+    this.filterSelect.onchange = () => this.filterSelectEvent();
     this.addFilters();
     this.outputOptions = new OutputOptions(this);
   }
@@ -353,8 +350,8 @@ class FilterPanel extends LoadPanel {
     }
   }
 
-  filterSelect(event) {
-    const options = event.target.options;
+  filterSelectEvent() {
+    const options = this.filterSelect.options;
     const selectedIndex = options.selectedIndex;
     const prevClass = options[this.selectedIndex].value;
     const currClass = options[selectedIndex].value;
