@@ -144,12 +144,6 @@ class LoadPanel extends Panel {
       new imageCompareViewer(node, { addCircle: true }).mount();
       images[1].classList.remove("d-none");
     }
-    const clipboardButton = panel.querySelector(".clipboard");
-    if (clipboardButton) {
-      clipboardButton.onclick = (event) => {
-        this.loadClipboardImage(event);
-      };
-    }
     panel.querySelector(".selectImage").onclick = () => {
       panel.querySelector(".inputImage").click();
     };
@@ -240,6 +234,25 @@ class FilterPanel extends LoadPanel {
 
   constructor(panel) {
     super(panel);
+    panel.querySelector(".saveClipboard").onclick = async () => {
+      const svgs = event.currentTarget.children;
+      svgs[0].classList.add("d-none");
+      svgs[1].classList.remove("d-none");
+      const blob = await new Promise((resolve) =>
+        this.canvas.toBlob(resolve, "image/png")
+      );
+      await navigator.clipboard.write([
+        new ClipboardItem({ "image/png": blob }),
+      ]);
+      setTimeout(() => {
+        svgs[0].classList.remove("d-none");
+        svgs[1].classList.add("d-none");
+      }, 2000);
+    };
+    panel.querySelector(".loadClipboard").onclick = (event) => {
+      this.loadClipboardImage(event);
+    };
+
     this.selectedIndex = 0;
     this.canvas = panel.querySelector("canvas");
     this.canvasContext = this.canvas.getContext("2d", {
@@ -267,31 +280,6 @@ class FilterPanel extends LoadPanel {
   moveLoadPanel() {
     this.hide();
     loadPanel.show();
-  }
-
-  downloadFile(file) {
-    const a = document.createElement("a");
-    const url = URL.createObjectURL(file);
-    a.href = url;
-    a.download = file.name;
-    document.body.appendChild(a);
-    a.click();
-    a.remove();
-    URL.revokeObjectURL(url);
-  }
-
-  downloadCanvas(type, quality) {
-    let ext = type.split("/")[1];
-    if (ext == "jpeg") ext = "jpg";
-    const name = `reduced.${ext}`;
-    this.canvas.toBlob(
-      (blob) => {
-        const file = new File([blob], name, { type });
-        this.downloadFile(file);
-      },
-      type,
-      quality,
-    );
   }
 
   toPNG8() {
@@ -322,29 +310,47 @@ class FilterPanel extends LoadPanel {
     });
   }
 
-  download() {
+  downloadFile(file) {
+    const a = document.createElement("a");
+    const url = URL.createObjectURL(file);
+    a.href = url;
+    a.download = file.name;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(url);
+  }
+
+  async download() {
+    const blob = await this.convert();
+    let ext = blob.type.split("/")[1];
+    if (ext === "jpeg") ext = "jpg";
+    const name = `reduced.${ext}`;
+    const file = new File([blob], name, { type: blob.type });
+    this.downloadFile(file);
+  }
+
+  async convert() {
     const typeSelect = this.panel.querySelector(".typeSelect");
     const type = typeSelect.options[typeSelect.selectedIndex].value;
     const quality = Number(this.panel.querySelector(".quality").value);
     if (this.currentFilter instanceof UniformQuantizationFilter) {
-      if (type == "image/png") {
+      if (type === "image/png") {
         const png = this.toPNG();
-        const blob = new Blob([png.buffer]);
-        const name = "reduced.png";
-        const file = new File([blob], name, { type });
-        this.downloadFile(file);
+        return new Blob([png.buffer], { type });
       } else {
-        this.downloadCanvas(type, quality);
+        return await new Promise((resolve) =>
+          this.canvas.toBlob(resolve, type, quality)
+        );
       }
     } else {
-      if (type == "image/png") {
+      if (type === "image/png") {
         const png = this.toPNG8();
-        const blob = new Blob([png.buffer]);
-        const name = "reduced.png";
-        const file = new File([blob], name, { type });
-        this.downloadFile(file);
+        return new Blob([png.buffer], { type });
       } else {
-        this.downloadCanvas(type, quality);
+        return await new Promise((resolve) =>
+          this.canvas.toBlob(resolve, type, quality)
+        );
       }
     }
   }
