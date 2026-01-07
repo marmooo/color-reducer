@@ -1,5 +1,5 @@
 import { MedianCut } from "./mediancut.ts";
-import { getPixels } from "get_pixels";
+import { getPixels } from "@unpic/pixels";
 
 const file = await Deno.readFile("test/wires.jpg");
 const image = await getPixels(file);

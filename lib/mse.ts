@@ -1,5 +1,5 @@
 import { MedianCut, OctreeQuantization, UniformQuantization } from "./mod.ts";
-import { getPixels } from "get_pixels";
+import { getPixels } from "@unpic/pixels";
 import cv from "@techstark/opencv-js";
 
 type GetPixelsImageData = {
