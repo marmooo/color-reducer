@@ -1,4 +1,4 @@
-const cacheName = "2026-06-11 00:00";
+const cacheName = "2026-09-22 00:00";
 const urlsToCache = [
   "/color-reducer/index.js",
   "/color-reducer/img/before.webp",
@@ -9,11 +9,11 @@ const urlsToCache = [
   "/color-reducer/img/castle-64.webp",
   "/color-reducer/pngs/pngs_bg.wasm",
   "/color-reducer/favicon/favicon.svg",
-  "https://cdn.jsdelivr.net/npm/wasm-feature-detect@1.8.0/dist/umd/index.min.js",
+  "https://cdn.jsdelivr.net/npm/wasm-feature-detect@1.9.0/dist/umd/index.min.js",
 ];
 
 importScripts(
-  "https://cdn.jsdelivr.net/npm/wasm-feature-detect@1.8.0/dist/umd/index.min.js",
+  "https://cdn.jsdelivr.net/npm/wasm-feature-detect@1.9.0/dist/umd/index.min.js",
 );
 
 async function getOpenCVPath() {
