@@ -60,6 +60,13 @@ function loadScript(url) {
   });
 }
 
+async function initOpenCV() {
+  await loadScript(await getOpenCVPath());
+  // opencv_js.js is built with MODULARIZE: `cv` stays a factory function
+  // until the WebAssembly runtime is ready.
+  globalThis.cv = typeof cv === "function" ? await cv() : await cv;
+}
+
 function getTransparentBackgroundImage(size, colors) {
   const canvas = document.createElement("canvas");
   canvas.width = size;
@@ -173,12 +180,7 @@ class LoadPanel extends Panel {
     const img = event.currentTarget;
     filterPanel.setCanvas(img);
     filterPanel.filterSelectEvent();
-    const filter = filterPanel.currentFilter;
-    filterPanel.canvas.classList.add("loading");
-    setTimeout(() => {
-      filter.apply();
-      filterPanel.canvas.classList.remove("loading");
-    }, 0);
+    filterPanel.applyCurrentFilter();
   };
 
   loadImage(url) {
@@ -359,11 +361,22 @@ class FilterPanel extends LoadPanel {
     this.selectedIndex = selectedIndex;
     const filter = new this.filters[currClass](this);
     this.currentFilter = filter;
+    this.applyCurrentFilter();
+  }
+
+  async applyCurrentFilter() {
+    const filter = this.currentFilter;
     this.canvas.classList.add("loading");
-    setTimeout(() => {
-      this.currentFilter.apply();
+    try {
+      if (filter.requiresOpenCV) await cvReady;
+      // let the browser paint the loading state before the heavy work
+      await new Promise((resolve) => setTimeout(resolve, 0));
+      filter.apply();
+    } catch (err) {
+      console.error(err);
+    } finally {
       this.canvas.classList.remove("loading");
-    }, 0);
+    }
   }
 
   addFilters() {
@@ -396,18 +409,16 @@ class Filter {
     this.addInputEvents(root, inputs);
   }
 
+  get requiresOpenCV() {
+    return false;
+  }
+
   apply() {
   }
 
   addInputEvents(root, inputs) {
     for (const input of Object.values(inputs)) {
-      input.addEventListener("input", () => {
-        filterPanel.canvas.classList.add("loading");
-        setTimeout(() => {
-          filterPanel.currentFilter.apply();
-          filterPanel.canvas.classList.remove("loading");
-        }, 0);
-      });
+      input.addEventListener("input", () => filterPanel.applyCurrentFilter());
     }
     for (const node of root.querySelectorAll("button[title=reset]")) {
       node.onclick = () => {
@@ -492,6 +503,10 @@ class UniformQuantizationFilter extends Filter {
     };
     super(root, inputs);
     this.filterPanel = filterPanel;
+  }
+
+  get requiresOpenCV() {
+    return true;
   }
 
   apply() {
@@ -587,13 +602,12 @@ class OctreeQuantizationFilter extends Filter {
   }
 }
 
+const cvReady = initOpenCV();
 const filterPanel = new FilterPanel(document.getElementById("filterPanel"));
 const loadPanel = new LoadPanel(document.getElementById("loadPanel"));
 initLangSelect();
 initTooltip();
 setTransparentCSSVariables();
-await loadScript(await getOpenCVPath());
-cv = await cv();
 
 document.getElementById("toggleDarkMode").onclick = toggleDarkMode;
 globalThis.ondragover = (event) => {
