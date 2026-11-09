@@ -1,4 +1,4 @@
-const cacheName = "2026-10-30 00:00";
+const cacheName = "2026-11-09 00:00";
 const urlsToCache = [
   "/color-reducer/index.js",
   "/color-reducer/img/before.webp",
